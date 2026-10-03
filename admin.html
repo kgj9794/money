@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>관리자 - 회원가입 승인 관리</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Pretendard', system-ui, sans-serif; }
+    body { background-color: #f1f3f5; color: #343a40; min-height: 100vh; padding: 30px 20px; }
+    
+    .admin-container { max-width: 1000px; margin: 0 auto; background: #ffffff; border-radius: 18px; padding: 32px; box-shadow: 0 4px 20px rgba(0,0,0,0.06); }
+    .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; border-bottom: 2px solid #f1f3f5; padding-bottom: 16px; }
+    .title { font-size: 1.5rem; font-weight: 700; color: #1864ab; }
+    .sub-title { font-size: 0.9rem; color: #868e96; margin-top: 4px; }
+    
+    .btn-refresh { padding: 9px 16px; background-color: #f8f9fa; border: 1px solid #dee2e6; border-radius: 8px; font-weight: 600; color: #495057; cursor: pointer; transition: all 0.2s; }
+    .btn-refresh:hover { background-color: #e9ecef; }
+    
+    .filter-group { display: flex; gap: 8px; margin-bottom: 20px; }
+    .btn-filter { padding: 8px 14px; border: 1px solid #dee2e6; background: #ffffff; border-radius: 8px; font-size: 0.88rem; font-weight: 600; color: #495057; cursor: pointer; }
+    .btn-filter.active { background-color: #228be6; color: #ffffff; border-color: #228be6; }
+    
+    .table-responsive { overflow-x: auto; border: 1px solid #e9ecef; border-radius: 12px; }
+    .data-table { width: 100%; border-collapse: collapse; text-align: left; font-size: 0.92rem; }
+    .data-table th { background-color: #f8f9fa; padding: 14px 16px; font-weight: 700; color: #495057; border-bottom: 2px solid #dee2e6; }
+    .data-table td { padding: 14px 16px; border-bottom: 1px solid #e9ecef; }
+    .data-table tr:hover { background-color: #f8f9fa; }
+    
+    .badge-side { display: inline-block; padding: 3px 8px; border-radius: 10px; font-size: 0.78rem; font-weight: 700; }
+    .badge-side.groom { background-color: #e7f5ff; color: #1c7ed6; }
+    .badge-side.bride { background-color: #fff0f6; color: #d6336c; }
+    
+    .badge-status { display: inline-block; padding: 4px 10px; border-radius: 12px; font-size: 0.8rem; font-weight: 700; }
+    .status-pending { background-color: #fff9db; color: #f59f00; }
+    .status-approved { background-color: #e6fcf5; color: #0ca678; }
+    .status-rejected { background-color: #fff5f5; color: #e03131; }
+    
+    .action-btns { display: flex; gap: 6px; }
+    .btn-action { padding: 6px 12px; border: none; border-radius: 6px; font-size: 0.82rem; font-weight: 700; cursor: pointer; transition: all 0.15s; }
+    .btn-approve { background-color: #2b8a3e; color: #ffffff; }
+    .btn-approve:hover { background-color: #2b8a3e; opacity: 0.9; }
+    .btn-reject { background-color: #c92a2a; color: #ffffff; }
+    .btn-reject:hover { background-color: #c92a2a; opacity: 0.9; }
+    
+    .empty-state { text-align: center; padding: 48px; color: #adb5bd; }
+    
+    /* 토스트 알림 */
+    .toast { position: fixed; top: 20px; right: 20px; background: #333; color: #fff; padding: 12px 20px; border-radius: 8px; font-size: 0.9rem; box-shadow: 0 4px 12px rgba(0,0,0,0.15); z-index: 1000; animation: fadeIn 0.3s; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
+  </style>
+</head>
+<body>
+
+  <div class="admin-container">
+    <div class="header">
+      <div>
+        <h1 class="title">🔐 회원가입 승인 관리자 대시보드</h1>
+        <p class="sub-title">신규 회원가입 신청 건을 확인하고 승인/거절을 관리합니다.</p>
+      </div>
+      <button type="button" class="btn-refresh" id="refreshBtn">🔄 목록 새로고침</button>
+    </div>
+
+    <div class="filter-group">
+      <button type="button" class="btn-filter active" data-filter="ALL">전체 보기</button>
+      <button type="button" class="btn-filter" data-filter="승인대기">승인 대기만 보기 ⏳</button>
+      <button type="button" class="btn-filter" data-filter="승인">승인 완료 ✅</button>
+      <button type="button" class="btn-filter" data-filter="거절">거절됨 ❌</button>
+    </div>
+
+    <div class="table-responsive">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>구분</th>
+            <th>아이디</th>
+            <th>실명 이름</th>
+            <th>신청일시</th>
+            <th>현재 상태</th>
+            <th>승인 관리</th>
+          </tr>
+        </thead>
+        <tbody id="userTableBody"></tbody>
+      </table>
+      <div id="emptyListState" class="empty-state">회원가입 요청 데이터가 없습니다.</div>
+    </div>
+  </div>
+
+  <script>
+    const GAS_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbwB46MO3t7uWLvQLGv-HTfkxyX946K0oJUVhvqAQxBPoNoD_78ytz4WBje8U0J66K2S/exec";
+
+    let cachedUsers = [];
+    let currentFilter = 'ALL';
+
+    const userTableBody = document.getElementById('userTableBody');
+    const emptyListState = document.getElementById('emptyListState');
+    const refreshBtn = document.getElementById('refreshBtn');
+
+    document.addEventListener('DOMContentLoaded', fetchUsers);
+
+    refreshBtn.addEventListener('click', fetchUsers);
+
+    document.querySelectorAll('.btn-filter').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        document.querySelectorAll('.btn-filter').forEach(b => b.classList.remove('active'));
+        e.target.classList.add('active');
+        currentFilter = e.target.getAttribute('data-filter');
+        renderTable();
+      });
+    });
+
+    async function fetchUsers() {
+      refreshBtn.disabled = true;
+      refreshBtn.textContent = '불러오는 중...';
+      try {
+        const response = await fetch(GAS_WEB_APP_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+          body: JSON.stringify({ action: 'getUsers' })
+        });
+        const result = await response.json();
+
+        if (result.status === 'success') {
+          cachedUsers = result.users || [];
+          renderTable();
+        } else {
+          showToast('회원 목록을 불러올 수 없습니다.');
+        }
+      } catch (err) {
+        showToast('네트워크 오류가 발생했습니다.');
+      } finally {
+        refreshBtn.disabled = false;
+        refreshBtn.textContent = '🔄 목록 새로고침';
+      }
+    }
+
+    function renderTable() {
+      const filtered = cachedUsers.filter(u => {
+        if (currentFilter === 'ALL') return true;
+        return u.status === currentFilter;
+      });
+
+      userTableBody.innerHTML = '';
+
+      if (filtered.length === 0) {
+        emptyListState.style.display = 'block';
+        return;
+      }
+
+      emptyListState.style.display = 'none';
+
+      filtered.forEach(user => {
+        const tr = document.createElement('tr');
+        
+        let statusBadgeClass = 'status-pending';
+        if (user.status === '승인') statusBadgeClass = 'status-approved';
+        if (user.status === '거절') statusBadgeClass = 'status-rejected';
+
+        tr.innerHTML = `
+          <td><span class="badge-side ${user.side === '신랑' ? 'groom' : 'bride'}">${user.side}측</span></td>
+          <td><strong>${escapeHtml(user.id)}</strong></td>
+          <td>${escapeHtml(user.name)}</td>
+          <td><small class="text-muted">${user.timestamp}</small></td>
+          <td><span class="badge-status ${statusBadgeClass}">${user.status}</span></td>
+          <td>
+            <div class="action-btns">
+              <button type="button" class="btn-action btn-approve" ${user.status === '승인' ? 'disabled style="opacity:0.4;"' : ''}>수락</button>
+              <button type="button" class="btn-action btn-reject" ${user.status === '거절' ? 'disabled style="opacity:0.4;"' : ''}>거절</button>
+            </div>
+          </td>
+        `;
+
+        tr.querySelector('.btn-approve').addEventListener('click', () => updateUserStatus(user.id, '승인'));
+        tr.querySelector('.btn-reject').addEventListener('click', () => updateUserStatus(user.id, '거절'));
+
+        userTableBody.appendChild(tr);
+      });
+    }
+
+    async function updateUserStatus(userId, status) {
+      if (!confirm(`[${userId}] 회원의 상태를 '${status}'(으)로 변경하시겠습니까?`)) return;
+
+      try {
+        const response = await fetch(GAS_WEB_APP_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+          body: JSON.stringify({ action: 'updateUserStatus', id: userId, status: status })
+        });
+        const result = await response.json();
+
+        if (result.status === 'success') {
+          showToast(result.message);
+          fetchUsers();
+        } else {
+          showToast(result.message);
+        }
+      } catch (err) {
+        showToast('요청 처리 실패!');
+      }
+    }
+
+    function showToast(msg) {
+      const toast = document.createElement('div');
+      toast.className = 'toast';
+      toast.textContent = msg;
+      document.body.appendChild(toast);
+      setTimeout(() => {
+        if (toast.parentNode) toast.parentNode.removeChild(toast);
+      }, 3000);
+    }
+
+    function escapeHtml(text) {
+      if (!text) return '';
+      return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    }
+  </script>
+</body>
+</html>
