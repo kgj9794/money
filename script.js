@@ -70,7 +70,7 @@ function triggerAnimation(el, className = 'animate-fade-in-up') {
   el.classList.add(className);
 }
 
-// 왼쪽 탭(축의금 등록)으로 이동 시: 왼쪽에서 오른쪽으로 슬라이드
+// 축의금 등록 탭 이동
 navRegisterBtn.addEventListener('click', () => {
   navRegisterBtn.classList.add('active');
   navListBtn.classList.remove('active');
@@ -79,7 +79,7 @@ navRegisterBtn.addEventListener('click', () => {
   triggerAnimation(registerSection, 'animate-slide-in-left');
 });
 
-// 오른쪽 탭(등록 내역 목록)으로 이동 시: 오른쪽에서 왼쪽으로 슬라이드
+// 등록 내역 목록 탭 이동
 navListBtn.addEventListener('click', () => {
   navListBtn.classList.add('active');
   navRegisterBtn.classList.remove('active');
@@ -222,27 +222,42 @@ giftForm.addEventListener('submit', async (e) => {
 // [5] 본인 측 축의금 목록만 불러오기
 async function loadGiftList() {
   const userSide = localStorage.getItem('wedding_app_user_side');
+
+  giftTableBody.innerHTML = `
+    <tr>
+      <td colspan="7" class="table-loading">
+        <div class="spinner"></div>
+        <div>목록을 불러오는 중...</div>
+      </td>
+    </tr>
+  `;
+  emptyListState.classList.add('hidden');
+
   try {
     const result = await sendRequest({ action: 'getGifts', userSide: userSide });
     if (result.status === 'success') {
       cachedGifts = result.gifts || [];
       updateStats(cachedGifts, userSide);
       renderTable();
+    } else {
+      giftTableBody.innerHTML = '';
+      showToast(result.message || "목록을 불러오지 못했습니다.", "error");
     }
   } catch (err) {
+    giftTableBody.innerHTML = '';
     showToast("목록을 불러오지 못했습니다.", "error");
   }
 }
 
+// [6] 목록 새로고침 버튼 이벤트 (이모티콘 제거 및 '새로고침 중..' 텍스트 전환)
 refreshListBtn.addEventListener('click', async () => {
-  const icon = refreshListBtn.querySelector('.refresh-icon');
-  if (icon) icon.classList.add('spin');
   refreshListBtn.disabled = true;
+  refreshListBtn.textContent = "새로고침 중..";
 
   await loadGiftList();
 
-  if (icon) icon.classList.remove('spin');
   refreshListBtn.disabled = false;
+  refreshListBtn.textContent = "목록 새로고침";
   showToast("최신화되었습니다.", "success");
 });
 
