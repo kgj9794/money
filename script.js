@@ -249,7 +249,7 @@ async function loadGiftList() {
   }
 }
 
-// [6] 목록 새로고침 버튼 이벤트 (이모티콘 제거 및 '새로고침 중..' 텍스트 전환)
+// [6] 목록 새로고침 버튼 이벤트
 refreshListBtn.addEventListener('click', async () => {
   refreshListBtn.disabled = true;
   refreshListBtn.textContent = "새로고침 중..";
@@ -288,8 +288,10 @@ function renderTable() {
   const currentUser = localStorage.getItem('wedding_app_user');
 
   const filtered = cachedGifts.filter(item => {
-    const matchSearch = item.name.toLowerCase().includes(searchTerm) || item.note.toLowerCase().includes(searchTerm);
-    const matchMine = !onlyMine || item.registeredBy === currentUser;
+    const nameStr = String(item.name || '').toLowerCase();
+    const noteStr = String(item.note || '').toLowerCase();
+    const matchSearch = nameStr.includes(searchTerm) || noteStr.includes(searchTerm);
+    const matchMine = !onlyMine || String(item.registeredBy) === String(currentUser);
 
     return matchSearch && matchMine;
   });
@@ -306,9 +308,9 @@ function renderTable() {
   filtered.forEach(item => {
     const tr = document.createElement('tr');
     tr.innerHTML = `
-      <td><span class="badge-target ${item.target === '신랑' ? 'badge-groom' : 'badge-bride'}">${item.target}측</span></td>
+      <td><span class="badge-target ${item.target === '신랑' ? 'badge-groom' : 'badge-bride'}">${escapeHtml(item.target)}측</span></td>
       <td><strong>${escapeHtml(item.name)}</strong></td>
-      <td><strong>${item.amount.toLocaleString()}원</strong></td>
+      <td><strong>${Number(item.amount).toLocaleString()}원</strong></td>
       <td>${escapeHtml(item.note || '-')}</td>
       <td><small class="text-muted">${item.timestamp}</small></td>
       <td><small>${escapeHtml(item.registeredBy)}</small></td>
@@ -336,7 +338,7 @@ async function deleteGiftItem(data) {
       const res = await sendRequest({
         action: 'deleteGift',
         target: data.target,
-        rowId: data.rowId
+        rowId: String(data.rowId)
       });
       if (res.status === 'success') {
         showToast("삭제되었습니다.", "success");
@@ -365,7 +367,7 @@ editForm.addEventListener('submit', async (e) => {
   try {
     const result = await sendRequest({
       action: 'updateGift',
-      rowId: rowId,
+      rowId: String(rowId),
       target: target,
       name: name,
       amount: rawAmount,
@@ -542,7 +544,8 @@ function setLoggedOutState() {
   loginForm.classList.remove('hidden');
 }
 
+// XSS 방지 이스케이프 (숫자 입력 안전 처리 추가)
 function escapeHtml(text) {
-  if (!text) return '';
-  return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  if (text === null || text === undefined) return '';
+  return String(text).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 }
