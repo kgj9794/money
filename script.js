@@ -59,25 +59,33 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 function triggerAnimation(el, className = 'animate-fade-in-up') {
-  el.classList.remove('animate-fade-in-up', 'animate-scale-in', 'animate-fade-in-down');
+  el.classList.remove(
+    'animate-fade-in-up',
+    'animate-scale-in',
+    'animate-fade-in-down',
+    'animate-slide-in-left',
+    'animate-slide-in-right'
+  );
   void el.offsetWidth;
   el.classList.add(className);
 }
 
+// 왼쪽 탭(축의금 등록)으로 이동 시: 왼쪽에서 오른쪽으로 슬라이드
 navRegisterBtn.addEventListener('click', () => {
   navRegisterBtn.classList.add('active');
   navListBtn.classList.remove('active');
   listSection.classList.add('hidden');
   registerSection.classList.remove('hidden');
-  triggerAnimation(registerSection, 'animate-fade-in-up');
+  triggerAnimation(registerSection, 'animate-slide-in-left');
 });
 
+// 오른쪽 탭(등록 내역 목록)으로 이동 시: 오른쪽에서 왼쪽으로 슬라이드
 navListBtn.addEventListener('click', () => {
   navListBtn.classList.add('active');
   navRegisterBtn.classList.remove('active');
   registerSection.classList.add('hidden');
   listSection.classList.remove('hidden');
-  triggerAnimation(listSection, 'animate-fade-in-up');
+  triggerAnimation(listSection, 'animate-slide-in-right');
   loadGiftList();
 });
 
@@ -211,7 +219,7 @@ giftForm.addEventListener('submit', async (e) => {
   }
 });
 
-// [5] 본인 측 축의금 목록만 불러오기 (보안 강화)
+// [5] 본인 측 축의금 목록만 불러오기
 async function loadGiftList() {
   const userSide = localStorage.getItem('wedding_app_user_side');
   try {
@@ -238,7 +246,6 @@ refreshListBtn.addEventListener('click', async () => {
   showToast("최신화되었습니다.", "success");
 });
 
-// 본인 측 전용 통계 업데이트
 function updateStats(gifts, userSide) {
   let count = gifts.length;
   let sideSum = 0;
