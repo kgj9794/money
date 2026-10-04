@@ -8,7 +8,10 @@
 body {
   background-color: #f1f3f5;
   min-height: 100vh;
+  min-height: 100dvh; /* 모바일 주소창 높이 대응 */
   color: #343a40;
+  display: flex;
+  flex-direction: column;
 }
 
 .wrapper {
@@ -18,6 +21,8 @@ body {
   padding: 28px 20px;
   display: flex;
   justify-content: center;
+  align-items: center; /* 카드 정중앙 배치를 위한 세로 정렬 */
+  flex: 1; /* 남은 화면 전체 높이 채우기 */
 }
 
 .hidden { display: none !important; }
@@ -210,7 +215,15 @@ body {
 .auth-footer { margin-top: 20px; padding-top: 16px; border-top: 1px solid #f1f3f5; text-align: center; font-size: 0.9rem; }
 .btn-text-link { background: none; border: none; color: #228be6; font-weight: 700; cursor: pointer; margin-left: 6px; text-decoration: underline; }
 
-.app-content { width: 100%; display: flex; flex-direction: column; gap: 24px; }
+/* 메인 대시보드 컨텐츠 (로그인 후 상단 정렬) */
+.app-content {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  align-self: flex-start; /* 대시보드는 상단에 붙도록 설정 */
+}
+
 .dashboard-panel { background-color: #ffffff; border-radius: 18px; padding: 36px 32px; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04); border: 1px solid #e9ecef; }
 .register-container { max-width: 680px; width: 100%; margin: 0 auto; }
 .panel-header { margin-bottom: 24px; }
