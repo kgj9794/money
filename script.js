@@ -72,6 +72,9 @@ function triggerAnimation(el, className = 'animate-fade-in-up') {
 
 // 축의금 등록 탭 이동
 navRegisterBtn.addEventListener('click', () => {
+  // 이미 활성화되어 있으면 애니메이션 중복 실행 방지
+  if (navRegisterBtn.classList.contains('active')) return;
+
   navRegisterBtn.classList.add('active');
   navListBtn.classList.remove('active');
   listSection.classList.add('hidden');
@@ -81,6 +84,9 @@ navRegisterBtn.addEventListener('click', () => {
 
 // 등록 내역 목록 탭 이동
 navListBtn.addEventListener('click', () => {
+  // 이미 활성화되어 있으면 애니메이션 중복 실행 방지
+  if (navListBtn.classList.contains('active')) return;
+
   navListBtn.classList.add('active');
   navRegisterBtn.classList.remove('active');
   registerSection.classList.add('hidden');
@@ -544,7 +550,6 @@ function setLoggedOutState() {
   loginForm.classList.remove('hidden');
 }
 
-// XSS 방지 이스케이프 (숫자 입력 안전 처리 추가)
 function escapeHtml(text) {
   if (text === null || text === undefined) return '';
   return String(text).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
