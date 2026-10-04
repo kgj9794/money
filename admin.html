@@ -3,10 +3,9 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>축의금 관리 시스템 - 관리자 대시보드</title>
+  <title>축의금 관리 시스템 - 통합 관리자 대시보드</title>
   <link rel="stylesheet" href="style.css">
   <style>
-    /* Admin 전용 레이아웃 및 UI 보완 */
     .admin-lock-wrapper {
       min-height: 85vh;
       display: flex;
@@ -14,69 +13,75 @@
       justify-content: center;
     }
 
-    .admin-badge-pending {
-      background-color: #fff3bf;
-      color: #f59f00;
-      font-weight: 700;
-      padding: 4px 8px;
-      border-radius: 6px;
+    /* 관리자 요약 카드 그리드 */
+    .admin-stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+
+    .admin-stat-card {
+      background: #ffffff;
+      padding: 20px;
+      border-radius: 12px;
+      border: 1px solid #e9ecef;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+    }
+    .admin-stat-card.groom { border-top: 4px solid #228be6; }
+    .admin-stat-card.bride { border-top: 4px solid #e64980; }
+    .admin-stat-card.total { border-top: 4px solid #12b886; }
+    .admin-stat-card.users { border-top: 4px solid #7950f2; }
+
+    .admin-stat-label { font-size: 0.85rem; color: #868e96; font-weight: 600; margin-bottom: 6px; }
+    .admin-stat-value { font-size: 1.5rem; font-weight: 800; color: #212529; }
+
+    /* 상태 뱃지 */
+    .badge-status {
+      display: inline-block;
+      padding: 4px 10px;
+      border-radius: 20px;
       font-size: 0.8rem;
+      font-weight: 700;
+    }
+    .badge-status-pending { background-color: #fff3bf; color: #f59f00; }
+    .badge-status-approved { background-color: #d3f9d8; color: #2b8a3e; }
+    .badge-status-rejected { background-color: #ffe3e3; color: #e03131; }
+
+    /* 서브 탭 스타일 */
+    .admin-tab-group {
+      display: flex;
+      gap: 10px;
+      border-bottom: 2px solid #e9ecef;
+      margin-bottom: 20px;
     }
 
-    .btn-approve {
-      background-color: #2b8a3e;
-      color: #ffffff;
+    .admin-tab-btn {
+      padding: 10px 18px;
       border: none;
-      padding: 6px 12px;
-      border-radius: 6px;
-      font-weight: 600;
+      background: transparent;
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: #868e96;
       cursor: pointer;
-      transition: background-color 0.2s;
-    }
-    .btn-approve:hover { background-color: #237032; }
-
-    .btn-reject {
-      background-color: #e03131;
-      color: #ffffff;
-      border: none;
-      padding: 6px 12px;
-      border-radius: 6px;
-      font-weight: 600;
-      cursor: pointer;
-      transition: background-color 0.2s;
-    }
-    .btn-reject:hover { background-color: #c92a2a; }
-
-    .text-muted { color: #868e96; }
-
-    /* 새로고침 아이콘 회전 애니메이션 */
-    .spin {
-      display: inline-block;
-      animation: spin 0.8s linear infinite;
+      border-bottom: 3px solid transparent;
+      margin-bottom: -2px;
+      transition: all 0.2s;
     }
 
-    @keyframes spin {
-      0% { transform: rotate(0deg); }
-      100% { transform: rotate(360deg); }
+    .admin-tab-btn.active {
+      color: #228be6;
+      border-bottom-color: #228be6;
     }
 
-    /* 테이블 로딩 스피너 디자인 */
-    .table-loading {
-      text-align: center;
-      padding: 36px 0;
-      color: #666;
-    }
+    .btn-approve { background-color: #2b8a3e; color: #fff; border: none; padding: 5px 10px; border-radius: 6px; font-weight: 600; cursor: pointer; }
+    .btn-reject { background-color: #e03131; color: #fff; border: none; padding: 5px 10px; border-radius: 6px; font-weight: 600; cursor: pointer; }
 
-    .spinner {
-      display: inline-block;
-      width: 26px;
-      height: 26px;
-      border: 3px solid #e9ecef;
-      border-radius: 50%;
-      border-top-color: #228be6;
-      animation: spin 0.8s linear infinite;
-      margin-bottom: 8px;
-    }
+    .spin { display: inline-block; animation: spin 0.8s linear infinite; }
+    @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+    .table-loading { text-align: center; padding: 36px 0; color: #666; }
+    .spinner { display: inline-block; width: 26px; height: 26px; border: 3px solid #e9ecef; border-radius: 50%; border-top-color: #228be6; animation: spin 0.8s linear infinite; margin-bottom: 8px; }
   </style>
 </head>
 <body>
@@ -87,7 +92,7 @@
     <div class="card animate-scale-in">
       <div class="card-hero">
         <span class="hero-badge">Admin Security</span>
-        <h1 class="hero-title">관리자 인증</h1>
+        <h1 class="hero-title">통합 관리자 인증</h1>
         <p class="hero-desc">관리자 비밀번호를 입력하여 접근을 승인받으세요.</p>
       </div>
       <div class="card-body">
@@ -107,10 +112,10 @@
     <header class="main-header">
       <div class="header-container">
         <div class="brand">
-          <span class="brand-name">관리자 대시보드</span>
+          <span class="brand-name">통합 관리자 대시보드</span>
         </div>
         <div class="user-profile">
-          <span class="user-greeting"><strong>최고 관리자</strong> 권한 세션</span>
+          <span class="user-greeting"><strong>최고 관리자</strong> 세션</span>
           <button type="button" id="adminLogoutBtn" class="btn-logout">로그아웃</button>
         </div>
       </div>
@@ -118,35 +123,108 @@
 
     <div class="wrapper">
       <main class="app-content">
+
+        <!-- 요약 통계 카드 -->
+        <div class="admin-stats-grid animate-fade-in-up">
+          <div class="admin-stat-card groom">
+            <div class="admin-stat-label">신랑측 총 축의금</div>
+            <div class="admin-stat-value" id="statGroomTotal">0원</div>
+          </div>
+          <div class="admin-stat-card bride">
+            <div class="admin-stat-label">신부측 총 축의금</div>
+            <div class="admin-stat-value" id="statBrideTotal">0원</div>
+          </div>
+          <div class="admin-stat-card total">
+            <div class="admin-stat-label">전체 합계 금액</div>
+            <div class="admin-stat-value" id="statAllTotal">0원</div>
+          </div>
+          <div class="admin-stat-card users">
+            <div class="admin-stat-label">총 사용자 수</div>
+            <div class="admin-stat-value" id="statUserTotal">0명</div>
+          </div>
+        </div>
+
+        <!-- 데이터 패널 -->
         <section class="dashboard-panel animate-fade-in-up">
           <div class="panel-header flex-between">
             <div>
-              <h2 class="panel-title">회원가입 승인 대기 목록</h2>
-              <p class="panel-sub">신규 회원가입 신청을 확인하고 승인/거절을 진행하세요.</p>
+              <h2 class="panel-title">전체 데이터 조회 및 관리</h2>
+              <p class="panel-sub">사용자 상태 관리 및 신랑/신부측 축의금 상세 정보를 확인하세요.</p>
             </div>
-            <button type="button" id="refreshPendingBtn" class="btn-secondary btn-sm">
-              <span class="refresh-icon">🔄</span> 새로고침
-            </button>
+            <button type="button" id="refreshAllBtn" class="btn-secondary btn-sm">전체 새로고침</button>
           </div>
 
-          <div class="table-responsive">
-            <table class="data-table">
-              <thead>
-                <tr>
-                  <th>구분</th>
-                  <th>이름</th>
-                  <th>아이디</th>
-                  <th>신청일시</th>
-                  <th>상태</th>
-                  <th class="text-center">승인 관리</th>
-                </tr>
-              </thead>
-              <tbody id="pendingTableBody"></tbody>
-            </table>
-            <div id="emptyPendingState" class="empty-state hidden">
-              <span>승인 대기 중인 회원가입 신청이 없습니다.</span>
+          <!-- 탭 메뉴 -->
+          <div class="admin-tab-group">
+            <button type="button" class="admin-tab-btn active" data-tab="tabUsers">회원 상태 관리</button>
+            <button type="button" class="admin-tab-btn" data-tab="tabGroom">신랑측 축의금 리스트</button>
+            <button type="button" class="admin-tab-btn" data-tab="tabBride">신부측 축의금 리스트</button>
+          </div>
+
+          <!-- TAB 1: 회원 관리 -->
+          <div id="tabUsers" class="admin-tab-content">
+            <div class="table-responsive">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>구분</th>
+                    <th>이름</th>
+                    <th>아이디</th>
+                    <th>신청일시</th>
+                    <th>현재 상태</th>
+                    <th class="text-center">상태 변경</th>
+                  </tr>
+                </thead>
+                <tbody id="usersTableBody"></tbody>
+              </table>
+              <div id="emptyUsersState" class="empty-state hidden">
+                <span>등록된 사용자가 없습니다.</span>
+              </div>
             </div>
           </div>
+
+          <!-- TAB 2: 신랑측 축의금 -->
+          <div id="tabGroom" class="admin-tab-content hidden">
+            <div class="table-responsive">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>이름</th>
+                    <th>금액</th>
+                    <th>비고</th>
+                    <th>등록자</th>
+                    <th>등록일시</th>
+                  </tr>
+                </thead>
+                <tbody id="groomGiftsTableBody"></tbody>
+              </table>
+              <div id="emptyGroomState" class="empty-state hidden">
+                <span>신랑측 등록 내역이 없습니다.</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- TAB 3: 신부측 축의금 -->
+          <div id="tabBride" class="admin-tab-content hidden">
+            <div class="table-responsive">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>이름</th>
+                    <th>금액</th>
+                    <th>비고</th>
+                    <th>등록자</th>
+                    <th>등록일시</th>
+                  </tr>
+                </thead>
+                <tbody id="brideGiftsTableBody"></tbody>
+              </table>
+              <div id="emptyBrideState" class="empty-state hidden">
+                <span>신부측 등록 내역이 없습니다.</span>
+              </div>
+            </div>
+          </div>
+
         </section>
       </main>
     </div>
@@ -161,10 +239,22 @@
     const adminPasswordInput = document.getElementById('adminPassword');
     const adminLoginSubmitBtn = document.getElementById('adminLoginSubmitBtn');
     const adminLogoutBtn = document.getElementById('adminLogoutBtn');
-    const pendingTableBody = document.getElementById('pendingTableBody');
-    const emptyPendingState = document.getElementById('emptyPendingState');
-    const refreshPendingBtn = document.getElementById('refreshPendingBtn');
+    const refreshAllBtn = document.getElementById('refreshAllBtn');
     const toastContainer = document.getElementById('toastContainer');
+
+    // 통계 요소
+    const statGroomTotal = document.getElementById('statGroomTotal');
+    const statBrideTotal = document.getElementById('statBrideTotal');
+    const statAllTotal = document.getElementById('statAllTotal');
+    const statUserTotal = document.getElementById('statUserTotal');
+
+    // 테이블 요소
+    const usersTableBody = document.getElementById('usersTableBody');
+    const emptyUsersState = document.getElementById('emptyUsersState');
+    const groomGiftsTableBody = document.getElementById('groomGiftsTableBody');
+    const emptyGroomState = document.getElementById('emptyGroomState');
+    const brideGiftsTableBody = document.getElementById('brideGiftsTableBody');
+    const emptyBrideState = document.getElementById('emptyBrideState');
 
     document.addEventListener('DOMContentLoaded', () => {
       const savedAdminPw = sessionStorage.getItem('admin_key');
@@ -173,7 +263,19 @@
       }
     });
 
-    // 1. 관리자 로그인 (GAS 백엔드 비밀번호 검증)
+    // 탭 전환 처리
+    document.querySelectorAll('.admin-tab-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.admin-tab-btn').forEach(b => b.classList.remove('active'));
+        document.querySelectorAll('.admin-tab-content').forEach(c => c.classList.add('hidden'));
+
+        btn.classList.add('active');
+        const targetTab = document.getElementById(btn.getAttribute('data-tab'));
+        if (targetTab) targetTab.classList.remove('hidden');
+      });
+    });
+
+    // 로그인
     adminLoginForm.addEventListener('submit', async (e) => {
       e.preventDefault();
       const inputPw = adminPasswordInput.value.trim();
@@ -201,7 +303,7 @@
       }
     });
 
-    // 2. 로그아웃
+    // 로그아웃
     adminLogoutBtn.addEventListener('click', () => {
       sessionStorage.removeItem('admin_key');
       adminDashboardSection.classList.add('hidden');
@@ -212,118 +314,155 @@
     function showDashboard() {
       adminAuthSection.classList.add('hidden');
       adminDashboardSection.classList.remove('hidden');
-      loadPendingUsers();
+      loadAllDashboardData();
     }
 
-    // 3. 승인 대기 목록 조회 (테이블 로딩 스피너 표시)
-    async function loadPendingUsers() {
-      pendingTableBody.innerHTML = `
-        <tr>
-          <td colspan="6" class="table-loading">
-            <div class="spinner"></div>
-            <div>목록을 불러오는 중...</div>
-          </td>
-        </tr>
-      `;
-      emptyPendingState.classList.add('hidden');
+    // 전체 데이터 새로고침
+    refreshAllBtn.addEventListener('click', async () => {
+      refreshAllBtn.disabled = true;
+      refreshAllBtn.textContent = "새로고침 중..";
+
+      await loadAllDashboardData();
+
+      refreshAllBtn.textContent = "전체 새로고침";
+      refreshAllBtn.disabled = false;
+      showToast("모든 데이터가 새로고침되었습니다.", "success");
+    });
+
+    async function loadAllDashboardData() {
+      await Promise.all([loadUsersData(), loadGiftsData()]);
+    }
+
+    // 1. 회원 목록 조회
+    async function loadUsersData() {
+      usersTableBody.innerHTML = `<tr><td colspan="6" class="table-loading"><div class="spinner"></div><div>회원 목록 불러오는 중...</div></td></tr>`;
+      emptyUsersState.classList.add('hidden');
 
       const adminKey = sessionStorage.getItem('admin_key');
       try {
-        const response = await sendRequest({
-          action: 'getPendingUsers',
-          adminPassword: adminKey
-        });
-
-        if (response.status === 'success') {
-          renderPendingTable(response.users || []);
+        const res = await sendRequest({ action: 'getAllUsersAdmin', adminPassword: adminKey });
+        if (res.status === 'success') {
+          renderUsersTable(res.users || []);
         } else {
-          pendingTableBody.innerHTML = '';
-          showToast(response.message, "error");
-          if (response.message.includes("권한")) {
-            adminLogoutBtn.click();
-          }
+          showToast(res.message, "error");
+          if (res.message.includes("권한")) adminLogoutBtn.click();
         }
       } catch (err) {
-        pendingTableBody.innerHTML = '';
-        showToast("승인 대기 목록을 불러오는 데 실패했습니다.", "error");
+        showToast("회원 목록 로딩 실패", "error");
       }
     }
 
-    // 4. 새로고침 버튼 클릭 (버튼 아이콘 회전 애니메이션)
-    refreshPendingBtn.addEventListener('click', async () => {
-      const icon = refreshPendingBtn.querySelector('.refresh-icon');
-
-      refreshPendingBtn.disabled = true;
-      if (icon) icon.classList.add('spin');
-
-      await loadPendingUsers();
-
-      if (icon) icon.classList.remove('spin');
-      refreshPendingBtn.disabled = false;
-      showToast("목록을 새로고침했습니다.", "success");
-    });
-
-    // 5. 목록 렌더링
-    function renderPendingTable(users) {
-      pendingTableBody.innerHTML = '';
+    function renderUsersTable(users) {
+      usersTableBody.innerHTML = '';
+      statUserTotal.textContent = `${users.length}명`;
 
       if (users.length === 0) {
-        emptyPendingState.classList.remove('hidden');
+        emptyUsersState.classList.remove('hidden');
         return;
       }
-
-      emptyPendingState.classList.add('hidden');
+      emptyUsersState.classList.add('hidden');
 
       users.forEach(user => {
         const tr = document.createElement('tr');
+        
+        let statusBadgeClass = 'badge-status-pending';
+        if (user.status === '승인') statusBadgeClass = 'badge-status-approved';
+        if (user.status === '거절') statusBadgeClass = 'badge-status-rejected';
+
         tr.innerHTML = `
-          <td><span class="badge-target ${user.side === '신랑' ? 'badge-groom' : 'badge-bride'}">${user.side}측</span></td>
+          <td><span class="badge-target ${user.side === '신랑' ? 'badge-groom' : 'badge-bride'}">${escapeHtml(user.side)}측</span></td>
           <td><strong>${escapeHtml(user.name)}</strong></td>
           <td>${escapeHtml(user.id)}</td>
           <td><small class="text-muted">${user.timestamp || '-'}</small></td>
-          <td><span class="admin-badge-pending">승인 대기</span></td>
+          <td><span class="badge-status ${statusBadgeClass}">${escapeHtml(user.status)}</span></td>
           <td class="text-center">
             <div class="action-btns">
-              <button type="button" class="btn-approve">수락</button>
-              <button type="button" class="btn-reject">거절</button>
+              ${user.status !== '승인' ? `<button type="button" class="btn-approve">승인</button>` : ''}
+              ${user.status !== '거절' ? `<button type="button" class="btn-reject">거절</button>` : ''}
             </div>
           </td>
         `;
 
-        tr.querySelector('.btn-approve').addEventListener('click', () => processApproval(user.id, 'approve'));
-        tr.querySelector('.btn-reject').addEventListener('click', () => processApproval(user.id, 'reject'));
+        const approveBtn = tr.querySelector('.btn-approve');
+        const rejectBtn = tr.querySelector('.btn-reject');
 
-        pendingTableBody.appendChild(tr);
+        if (approveBtn) approveBtn.addEventListener('click', () => processApproval(user.id, 'approve'));
+        if (rejectBtn) rejectBtn.addEventListener('click', () => processApproval(user.id, 'reject'));
+
+        usersTableBody.appendChild(tr);
       });
     }
 
-    // 6. 승인/거절 처리
-    async function processApproval(userId, type) {
-      const actionName = type === 'approve' ? '수락' : '거절';
-      if (!confirm(`[${userId}] 사용자의 회원가입을 ${actionName}하시겠습니까?`)) return;
+    // 2. 신랑/신부 축의금 전체 및 상세 리스트 조회
+    async function loadGiftsData() {
+      groomGiftsTableBody.innerHTML = `<tr><td colspan="5" class="table-loading"><div class="spinner"></div><div>신랑측 내역 불러오는 중...</div></td></tr>`;
+      brideGiftsTableBody.innerHTML = `<tr><td colspan="5" class="table-loading"><div class="spinner"></div><div>신부측 내역 불러오는 중...</div></td></tr>`;
 
       const adminKey = sessionStorage.getItem('admin_key');
-
       try {
-        const response = await sendRequest({
-          action: 'approveUser',
-          adminPassword: adminKey,
-          userId: userId,
-          type: type
-        });
+        const res = await sendRequest({ action: 'getAllGiftsAdmin', adminPassword: adminKey });
+        if (res.status === 'success') {
+          // 총액 통계 반영
+          statGroomTotal.textContent = `${res.groomTotal.toLocaleString()}원`;
+          statBrideTotal.textContent = `${res.brideTotal.toLocaleString()}원`;
+          statAllTotal.textContent = `${(res.groomTotal + res.brideTotal).toLocaleString()}원`;
 
-        if (response.status === 'success') {
-          showToast(`회원가입이 ${actionName} 되었습니다.`, "success");
-          loadPendingUsers();
+          renderGiftsTable(groomGiftsTableBody, emptyGroomState, res.groomGifts || []);
+          renderGiftsTable(brideGiftsTableBody, emptyBrideState, res.brideGifts || []);
         } else {
-          showToast(response.message, "error");
+          showToast(res.message, "error");
         }
       } catch (err) {
-        showToast(`${actionName} 처리 중 오류가 발생했습니다.`, "error");
+        showToast("축의금 데이터 로딩 실패", "error");
       }
     }
 
-    // 7. GAS 요청 전송 공통 함수
+    function renderGiftsTable(tbody, emptyEl, gifts) {
+      tbody.innerHTML = '';
+      if (gifts.length === 0) {
+        emptyEl.classList.remove('hidden');
+        return;
+      }
+      emptyEl.classList.add('hidden');
+
+      gifts.forEach(gift => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td><strong>${escapeHtml(gift.name)}</strong></td>
+          <td><strong>${Number(gift.amount).toLocaleString()}원</strong></td>
+          <td>${escapeHtml(gift.note || '-')}</td>
+          <td><small>${escapeHtml(gift.registeredBy)}</small></td>
+          <td><small class="text-muted">${gift.timestamp || '-'}</small></td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    // 회원 승인/거절 상태 변경 처리
+    async function processApproval(userId, type) {
+      const actionName = type === 'approve' ? '승인' : '거절';
+      if (!confirm(`[${userId}] 회원을 ${actionName} 처리하시겠습니까?`)) return;
+
+      const adminKey = sessionStorage.getItem('admin_key');
+      try {
+        const res = await sendRequest({
+          action: 'approveUser',
+          adminPassword: adminKey,
+          userId: String(userId),
+          type: type
+        });
+
+        if (res.status === 'success') {
+          showToast(`회원이 ${actionName} 되었습니다.`, "success");
+          loadUsersData();
+        } else {
+          showToast(res.message, "error");
+        }
+      } catch (err) {
+        showToast("처리 중 오류가 발생했습니다.", "error");
+      }
+    }
+
     async function sendRequest(payload) {
       const response = await fetch(GAS_WEB_APP_URL, {
         method: 'POST',
@@ -333,7 +472,6 @@
       return await response.json();
     }
 
-    // 8. 토스트 메시지
     function showToast(message, type = "success") {
       const toast = document.createElement('div');
       toast.className = `toast ${type === 'error' ? 'toast-error' : ''}`;
@@ -347,16 +485,12 @@
 
       toastContainer.appendChild(toast);
       toast.querySelector('.btn-toast-close').addEventListener('click', () => toast.remove());
-
-      setTimeout(() => {
-        if (toast.parentNode) toast.remove();
-      }, 4000);
+      setTimeout(() => { if (toast.parentNode) toast.remove(); }, 4000);
     }
 
-    // 9. XSS 방지 이스케이프
     function escapeHtml(text) {
-      if (!text) return '';
-      return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+      if (text === null || text === undefined) return '';
+      return String(text).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
     }
   </script>
 </body>
