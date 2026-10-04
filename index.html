@@ -7,25 +7,23 @@
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
+  <!-- 토스트 알림 컨테이너 -->
   <div id="toastContainer" class="toast-container"></div>
 
-  <!-- 상단 메인 헤더 -->
+  <!-- 메인 헤더 -->
   <header id="mainHeader" class="main-header hidden">
     <div class="header-container">
       <div class="brand">
-        <span class="brand-icon">💒</span>
-        <span class="brand-name">축의금 관리 시스템</span>
+        <span class="brand-name">축의금 관리</span>
       </div>
-      
       <nav class="nav-tabs">
-        <button type="button" class="nav-tab active" id="navRegisterBtn">➕ 축의금 등록</button>
-        <button type="button" class="nav-tab" id="navListBtn">📋 등록 내역 목록</button>
+        <button type="button" id="navRegisterBtn" class="nav-tab active">축의금 등록</button>
+        <button type="button" id="navListBtn" class="nav-tab">등록 내역 목록</button>
       </nav>
-
       <div class="user-profile">
         <span class="user-greeting">
-          <strong id="headerUserName">홍길동</strong>님 
-          <span id="headerUserSideBadge" class="user-side-badge">신랑측</span> 안녕하세요.
+          <strong id="headerUserName">-</strong>님
+          <span id="headerUserSideBadge" class="user-side-badge groom">신랑측</span>
         </span>
         <button type="button" id="headerLogoutBtn" class="btn-logout">로그아웃</button>
       </div>
@@ -33,149 +31,131 @@
   </header>
 
   <div class="wrapper">
-    <!-- 로그인 / 회원가입 이전 카드 -->
-    <div class="card" id="authCard">
+    <!-- 인증 카드 (로그인 / 회원가입) -->
+    <div id="authCard" class="card">
       <div class="card-hero">
-        <span class="hero-badge">Wedding Manager</span>
+        <span class="hero-badge">Wedding Day</span>
         <h1 class="hero-title">축의금 관리 시스템</h1>
-        <p class="hero-desc">로그인 후 축의금을 등록하고 내역을 관리하실 수 있습니다.</p>
+        <p class="hero-desc">소중한 마음을 투명하고 편리하게 기록하세요.</p>
       </div>
-
       <div class="card-body">
-        <div id="authSection">
-          <!-- 로그인 폼 -->
-          <form id="loginForm">
-            <h2 class="auth-title">로그인</h2>
-            <div class="form-group">
-              <label for="loginId">아이디</label>
-              <input type="text" id="loginId" required autocomplete="username" placeholder="아이디를 입력하세요">
-            </div>
-            <div class="form-group">
-              <label for="loginPw">비밀번호</label>
-              <input type="password" id="loginPw" required autocomplete="current-password" placeholder="비밀번호를 입력하세요">
-            </div>
-            <button type="submit" id="loginSubmitBtn" class="btn-primary">로그인</button>
-            
-            <div class="auth-footer">
-              <span>아직 회원이 아니신가요?</span>
-              <button type="button" id="goToSignupBtn" class="btn-text-link">회원가입</button>
-            </div>
-          </form>
+        <!-- 로그인 폼 -->
+        <form id="loginForm">
+          <h2 class="auth-title">로그인</h2>
+          <div class="form-group">
+            <label for="loginId">아이디</label>
+            <input type="text" id="loginId" placeholder="아이디를 입력하세요" required>
+          </div>
+          <div class="form-group">
+            <label for="loginPw">비밀번호</label>
+            <input type="password" id="loginPw" placeholder="비밀번호를 입력하세요" required>
+          </div>
+          <button type="submit" id="loginSubmitBtn" class="btn-primary">로그인</button>
+          <div class="auth-footer">
+            <span>계정이 없으신가요?</span>
+            <button type="button" id="goToSignupBtn" class="btn-text-link">회원가입 신청</button>
+          </div>
+        </form>
 
-          <!-- 회원가입 폼 -->
-          <form id="signupForm" class="hidden">
-            <h2 class="auth-title">회원가입</h2>
-            
-            <div class="form-group">
-              <label class="section-label">구분 선택 <span class="required">*</span></label>
-              <div class="target-selector">
-                <label class="radio-label">
-                  <input type="radio" name="signupSide" value="신랑" checked>
-                  <span class="btn-radio">신랑측</span>
-                </label>
-                <label class="radio-label">
-                  <input type="radio" name="signupSide" value="신부">
-                  <span class="btn-radio">신부측</span>
-                </label>
-              </div>
+        <!-- 회원가입 폼 -->
+        <form id="signupForm" class="hidden">
+          <h2 class="auth-title">회원가입 신청</h2>
+          <div class="form-group">
+            <label class="section-label">구분 <span class="required">*</span></label>
+            <div class="target-selector">
+              <label class="radio-label">
+                <input type="radio" name="signupSide" value="신랑" checked>
+                <span class="btn-radio">신랑측</span>
+              </label>
+              <label class="radio-label">
+                <input type="radio" name="signupSide" value="신부">
+                <span class="btn-radio">신부측</span>
+              </label>
             </div>
-
-            <div class="form-group">
-              <label for="signupName">실명 이름 <span class="required">*</span></label>
-              <input type="text" id="signupName" required autocomplete="name" placeholder="홍길동">
-            </div>
-            <div class="form-group">
-              <label for="signupId">아이디 <span class="required">*</span></label>
-              <input type="text" id="signupId" required autocomplete="username" placeholder="사용할 아이디 입력">
-            </div>
-            <div class="form-group">
-              <label for="signupPw">비밀번호 <span class="required">*</span></label>
-              <input type="password" id="signupPw" required autocomplete="new-password" placeholder="비밀번호 입력">
-            </div>
-            <div class="form-group">
-              <label for="signupPwConfirm">비밀번호 확인 <span class="required">*</span></label>
-              <input type="password" id="signupPwConfirm" required autocomplete="new-password" placeholder="비밀번호 재입력">
-            </div>
-            <button type="submit" id="signupSubmitBtn" class="btn-primary">회원가입 신청</button>
-
-            <div class="auth-footer">
-              <span>이미 계정이 있으신가요?</span>
-              <button type="button" id="goToLoginBtn" class="btn-text-link">로그인으로 돌아가기</button>
-            </div>
-          </form>
-        </div>
+          </div>
+          <div class="form-group">
+            <label for="signupName">이름 <span class="required">*</span></label>
+            <input type="text" id="signupName" placeholder="이름을 입력하세요" required>
+          </div>
+          <div class="form-group">
+            <label for="signupId">아이디 <span class="required">*</span></label>
+            <input type="text" id="signupId" placeholder="아이디를 입력하세요" required>
+          </div>
+          <div class="form-group">
+            <label for="signupPw">비밀번호 <span class="required">*</span></label>
+            <input type="password" id="signupPw" placeholder="비밀번호를 입력하세요" required>
+          </div>
+          <div class="form-group">
+            <label for="signupPwConfirm">비밀번호 확인 <span class="required">*</span></label>
+            <input type="password" id="signupPwConfirm" placeholder="비밀번호를 다시 입력하세요" required>
+          </div>
+          <button type="submit" id="signupSubmitBtn" class="btn-primary">회원가입 신청</button>
+          <div class="auth-footer">
+            <span>이미 계정이 있으신가요?</span>
+            <button type="button" id="goToLoginBtn" class="btn-text-link">로그인</button>
+          </div>
+        </form>
       </div>
     </div>
 
-    <!-- 로그인 후 메인 영역 -->
+    <!-- 앱 메인 컨텐츠 영역 -->
     <main id="appContent" class="app-content hidden">
-      
-      <!-- TAB 1: 축의금 등록 화면 -->
-      <section id="registerSection" class="dashboard-panel">
-        <div class="register-container">
-          <div class="panel-header">
-            <h2 class="panel-title">축의금 등록</h2>
-            <p class="panel-sub">하객 정보와 축의금 금액을 입력해 주세요.</p>
-          </div>
-
-          <form id="giftForm" class="gift-form-layout">
-            <div class="form-group">
-              <label for="name">이름 <span class="required">*</span></label>
-              <input type="text" id="name" name="name" placeholder="하객 성함" required autocomplete="off">
-            </div>
-
-            <div class="form-group">
-              <label for="amount">금액 (원) <span class="required">*</span></label>
-              <input type="text" id="amount" name="amount" placeholder="0" required autocomplete="off">
-              
-              <div class="quick-amount-group">
-                <button type="button" class="btn-quick" data-amount="10000">+1만</button>
-                <button type="button" class="btn-quick" data-amount="50000">+5만</button>
-                <button type="button" class="btn-quick" data-amount="100000">+10만</button>
-                <button type="button" class="btn-quick" data-amount="1000000">+100만</button>
-              </div>
-
-              <button type="button" class="btn-reset" id="resetAmountBtn">금액 초기화</button>
-            </div>
-
-            <div class="form-group">
-              <label for="note">비고</label>
-              <textarea id="note" name="note" rows="3" placeholder="관계, 소속, 전달사항 등 (선택 사항)"></textarea>
-            </div>
-
-            <button type="submit" id="submitBtn" class="btn-primary btn-submit-lg">저장하기</button>
-          </form>
+      <!-- 1. 축의금 등록 섹션 -->
+      <section id="registerSection" class="dashboard-panel register-container">
+        <div class="panel-header">
+          <h2 class="panel-title">축의금 등록</h2>
+          <p class="panel-sub">전달받은 축의금 내역을 입력해 주세요.</p>
         </div>
+        <form id="giftForm">
+          <div class="form-group">
+            <label for="name">성함 <span class="required">*</span></label>
+            <input type="text" id="name" placeholder="예: 홍길동" required>
+          </div>
+          <div class="form-group">
+            <label for="amount">금액 (원) <span class="required">*</span></label>
+            <input type="text" id="amount" placeholder="0" required>
+            <div class="quick-amount-group">
+              <button type="button" class="btn-quick" data-amount="50000">+5만</button>
+              <button type="button" class="btn-quick" data-amount="100000">+10만</button>
+              <button type="button" class="btn-quick" data-amount="300000">+30만</button>
+              <button type="button" class="btn-quick" data-amount="500000">+50만</button>
+            </div>
+            <button type="button" id="resetAmountBtn" class="btn-reset">금액 정정 (초기화)</button>
+          </div>
+          <div class="form-group">
+            <label for="note">메모 / 비고</label>
+            <textarea id="note" placeholder="소속, 관계 또는 기타 참고사항을 입력하세요"></textarea>
+          </div>
+          <button type="submit" id="submitBtn" class="btn-primary">저장하기</button>
+        </form>
       </section>
 
-      <!-- TAB 2: 등록한 리스트 보기 화면 (본인 측 내역만 전용으로 표시) -->
+      <!-- 2. 등록 내역 목록 섹션 -->
       <section id="listSection" class="dashboard-panel hidden">
         <div class="panel-header flex-between">
           <div>
             <h2 class="panel-title">등록 내역 목록</h2>
-            <p class="panel-sub" id="listSubTitle">본인 측 축의금 목록만 안전하게 조회됩니다.</p>
+            <p id="listSubTitle" class="panel-sub">축의금 등록 내역입니다.</p>
           </div>
-          <button type="button" id="refreshListBtn" class="btn-secondary btn-sm">
-            <span class="refresh-icon">🔄</span> 목록 새로고침
-          </button>
+          <button type="button" id="refreshListBtn" class="btn-secondary btn-sm">목록 새로고침</button>
         </div>
 
-        <!-- 본인 측 요약 통계 카드 -->
-        <div class="stats-grid stats-grid-2">
+        <!-- 2칸 요약 통계 카드 -->
+        <div class="stats-grid-2">
           <div class="stat-card">
             <span class="stat-label">총 등록 건수</span>
-            <strong class="stat-value" id="statTotalCount">0건</strong>
+            <span id="statTotalCount" class="stat-value">0건</span>
           </div>
-          <div class="stat-card stat-groom" id="statSideCard">
-            <span class="stat-label" id="statSideLabel">내 측 총 금액</span>
-            <strong class="stat-value" id="statSideTotal">0원</strong>
+          <div id="statSideCard" class="stat-card stat-groom">
+            <span id="statSideLabel" class="stat-label">측 총 금액</span>
+            <span id="statSideTotal" class="stat-value">0원</span>
           </div>
         </div>
 
-        <!-- 필터 바 (검색 및 내 등록 건 필터) -->
+        <!-- 필터 및 검색 바 -->
         <div class="filter-bar">
           <div class="search-box">
-            <input type="text" id="listSearchInput" placeholder="이름 또는 비고 검색...">
+            <input type="text" id="listSearchInput" placeholder="이름 또는 메모 검색...">
           </div>
           <div class="filter-group">
             <label class="checkbox-label">
@@ -185,27 +165,29 @@
           </div>
         </div>
 
+        <!-- 데이터 테이블 -->
         <div class="table-responsive">
           <table class="data-table">
             <thead>
               <tr>
                 <th>구분</th>
-                <th>이름</th>
+                <th>성함</th>
                 <th>금액</th>
                 <th>비고</th>
-                <th>작성일시</th>
+                <th>등록일시</th>
                 <th>등록자</th>
                 <th class="text-center">관리</th>
               </tr>
             </thead>
-            <tbody id="giftTableBody"></tbody>
+            <tbody id="giftTableBody">
+              <!-- JS 동적 생성 -->
+            </tbody>
           </table>
           <div id="emptyListState" class="empty-state hidden">
-            <span>등록된 축의금 내역이 없습니다.</span>
+            등록된 축의금 내역이 없습니다.
           </div>
         </div>
       </section>
-
     </main>
   </div>
 
@@ -213,27 +195,27 @@
   <div id="editModal" class="modal-overlay hidden">
     <div class="modal-content">
       <div class="modal-header">
-        <h3>축의금 정보 수정</h3>
+        <h3>축의금 내역 수정</h3>
         <button type="button" id="closeModalBtn" class="btn-close">&times;</button>
       </div>
       <form id="editForm">
         <input type="hidden" id="editRowId">
         <input type="hidden" id="editTarget">
         <div class="form-group">
-          <label for="editName">이름</label>
+          <label for="editName">성함 <span class="required">*</span></label>
           <input type="text" id="editName" required>
         </div>
         <div class="form-group">
-          <label for="editAmount">금액 (원)</label>
+          <label for="editAmount">금액 (원) <span class="required">*</span></label>
           <input type="text" id="editAmount" required>
         </div>
         <div class="form-group">
-          <label for="editNote">비고</label>
-          <textarea id="editNote" rows="3" placeholder="관계, 소속, 전달사항 등 (선택 사항)"></textarea>
+          <label for="editNote">메모 / 비고</label>
+          <textarea id="editNote"></textarea>
         </div>
         <div class="modal-actions">
-          <button type="button" id="cancelEditBtn" class="btn-secondary">취소</button>
-          <button type="submit" id="saveEditBtn" class="btn-primary">수정 완료</button>
+          <button type="button" id="cancelEditBtn" class="btn-secondary" style="flex: 1;">취소</button>
+          <button type="submit" id="saveEditBtn" class="btn-primary" style="flex: 1; margin-top: 0;">수정 완료</button>
         </div>
       </form>
     </div>
