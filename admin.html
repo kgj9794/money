@@ -76,6 +76,7 @@
 
     .btn-approve { background-color: #2b8a3e; color: #fff; border: none; padding: 5px 10px; border-radius: 6px; font-weight: 600; cursor: pointer; }
     .btn-reject { background-color: #e03131; color: #fff; border: none; padding: 5px 10px; border-radius: 6px; font-weight: 600; cursor: pointer; }
+    .btn-pw-change { background-color: #7950f2; color: #fff; border: none; padding: 5px 10px; border-radius: 6px; font-weight: 600; cursor: pointer; }
 
     .spin { display: inline-block; animation: spin 0.8s linear infinite; }
     @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
@@ -170,9 +171,10 @@
                     <th>구분</th>
                     <th>이름</th>
                     <th>아이디</th>
+                    <th>비밀번호</th>
                     <th>신청일시</th>
                     <th>현재 상태</th>
-                    <th class="text-center">상태 변경</th>
+                    <th class="text-center">상태 / 비밀번호 관리</th>
                   </tr>
                 </thead>
                 <tbody id="usersTableBody"></tbody>
@@ -335,7 +337,7 @@
 
     // 1. 회원 목록 조회
     async function loadUsersData() {
-      usersTableBody.innerHTML = `<tr><td colspan="6" class="table-loading"><div class="spinner"></div><div>회원 목록 불러오는 중...</div></td></tr>`;
+      usersTableBody.innerHTML = `<tr><td colspan="7" class="table-loading"><div class="spinner"></div><div>회원 목록 불러오는 중...</div></td></tr>`;
       emptyUsersState.classList.add('hidden');
 
       const adminKey = sessionStorage.getItem('admin_key');
@@ -373,21 +375,25 @@
           <td><span class="badge-target ${user.side === '신랑' ? 'badge-groom' : 'badge-bride'}">${escapeHtml(user.side)}측</span></td>
           <td><strong>${escapeHtml(user.name)}</strong></td>
           <td>${escapeHtml(user.id)}</td>
+          <td><code>${escapeHtml(user.pw)}</code></td>
           <td><small class="text-muted">${user.timestamp || '-'}</small></td>
           <td><span class="badge-status ${statusBadgeClass}">${escapeHtml(user.status)}</span></td>
           <td class="text-center">
             <div class="action-btns">
               ${user.status !== '승인' ? `<button type="button" class="btn-approve">승인</button>` : ''}
               ${user.status !== '거절' ? `<button type="button" class="btn-reject">거절</button>` : ''}
+              <button type="button" class="btn-pw-change">비번변경</button>
             </div>
           </td>
         `;
 
         const approveBtn = tr.querySelector('.btn-approve');
         const rejectBtn = tr.querySelector('.btn-reject');
+        const changePwBtn = tr.querySelector('.btn-pw-change');
 
         if (approveBtn) approveBtn.addEventListener('click', () => processApproval(user.id, 'approve'));
         if (rejectBtn) rejectBtn.addEventListener('click', () => processApproval(user.id, 'reject'));
+        if (changePwBtn) changePwBtn.addEventListener('click', () => changePassword(user.id));
 
         usersTableBody.appendChild(tr);
       });
@@ -460,6 +466,35 @@
         }
       } catch (err) {
         showToast("처리 중 오류가 발생했습니다.", "error");
+      }
+    }
+
+    // 회원 비밀번호 변경 처리
+    async function changePassword(userId) {
+      const newPw = prompt(`[${userId}] 회원의 새 비밀번호를 입력하세요:`);
+      if (newPw === null) return;
+      if (!newPw.trim()) {
+        showToast("비밀번호를 입력해주세요.", "error");
+        return;
+      }
+
+      const adminKey = sessionStorage.getItem('admin_key');
+      try {
+        const res = await sendRequest({
+          action: 'changeUserPasswordAdmin',
+          adminPassword: adminKey,
+          userId: String(userId),
+          newPassword: newPw.trim()
+        });
+
+        if (res.status === 'success') {
+          showToast("비밀번호가 성공적으로 변경되었습니다.", "success");
+          loadUsersData();
+        } else {
+          showToast(res.message, "error");
+        }
+      } catch (err) {
+        showToast("비밀번호 변경 중 오류가 발생했습니다.", "error");
       }
     }
 
