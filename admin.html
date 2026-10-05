@@ -4,8 +4,8 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>축의금 관리 시스템(관리자모드)</title>
-    <!-- Favicon 설정 -->
-    <link rel="icon" type="image/png" href="favi.png">
+  <!-- Favicon 설정 -->
+  <link rel="icon" type="image/png" href="favi.png">
   <link rel="stylesheet" href="style.css">
   <style>
     .admin-lock-wrapper {
@@ -119,6 +119,10 @@
             <input type="password" id="adminPassword" placeholder="비밀번호 입력" required autocomplete="current-password">
           </div>
           <button type="submit" id="adminLoginSubmitBtn" class="btn-primary">대시보드 접속</button>
+          <div class="auth-footer">
+            <span>일반 사용자이신가요?</span>
+            <button type="button" id="goToMainBtn" class="btn-text-link" onclick="location.href='index.html'">메인 페이지로 이동</button>
+          </div>
         </form>
       </div>
     </div>
