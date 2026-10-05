@@ -242,6 +242,14 @@ headerLogoutBtn.addEventListener('click', () => {
 giftForm.addEventListener('submit', async (e) => {
   e.preventDefault();
 
+  // 금액 조절 애니메이션 진행 중 제출된 경우 애니메이션 즉시 중단 및 최종 목표 금액 적용
+  if (currentAmountAnimationId) {
+    cancelAnimationFrame(currentAmountAnimationId);
+    currentAmountAnimationId = null;
+    amountInput.value = currentTargetAmount > 0 ? currentTargetAmount.toLocaleString('ko-KR') : '';
+    amountInput.classList.remove('amount-up', 'amount-down');
+  }
+
   const currentUser = localStorage.getItem('wedding_app_user');
   const userSide = localStorage.getItem('wedding_app_user_side');
   if (!currentUser || !userSide) {
@@ -641,6 +649,9 @@ document.getElementById('resetAmountBtn').addEventListener('click', () => {
 
 // 키보드 방향키(ArrowUp / ArrowDown) 조작 및 엔터(Enter) 지원
 function handleAmountKeyEvents(e) {
+  // 한글 입력(조합) 중 발생하는 중복 키 이벤트 방지
+  if (e.isComposing || e.keyCode === 229) return;
+
   if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
     e.preventDefault();
     const currentRaw = amountInput.value.replace(/,/g, '');
