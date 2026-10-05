@@ -5,6 +5,9 @@ const headerUserName = document.getElementById('headerUserName');
 const headerUserSideBadge = document.getElementById('headerUserSideBadge');
 const headerLogoutBtn = document.getElementById('headerLogoutBtn');
 
+const sessionTimerDisplay = document.getElementById('sessionTimerDisplay');
+const sessionTimerCount = document.getElementById('sessionTimerCount');
+
 const navRegisterBtn = document.getElementById('navRegisterBtn');
 const navListBtn = document.getElementById('navListBtn');
 
@@ -56,16 +59,32 @@ let activeToast = null;
 let currentAmountAnimationId = null;
 let currentTargetAmount = 0; // 연타 시 목표 금액 누적 상태 유지 변수
 
+// 세션 관리 변수 (30분 = 1800초)
+const SESSION_DURATION_MS = 30.1 * 60 * 1000;
+let sessionIntervalId = null;
+let lastActivityTime = Date.now();
+
 document.addEventListener('DOMContentLoaded', async () => {
   setupLongPressAdminLink(); // 5초 길게 누르기 바인딩
+  setupActivityTracker();    // 사용자 활동 감지 바인딩
 
   const savedUser = localStorage.getItem('wedding_app_user');
   const savedSide = localStorage.getItem('wedding_app_user_side');
   const savedUserId = localStorage.getItem('wedding_app_user_id');
   const savedToken = localStorage.getItem('wedding_app_session_token');
+  const savedLastActivity = localStorage.getItem('wedding_app_last_activity');
 
-  // 로컬 스토리지에 세션 정보가 존재하면 서버 검증 요청
   if (savedUser && savedSide && savedUserId && savedToken) {
+    const now = Date.now();
+    const lastActive = savedLastActivity ? parseInt(savedLastActivity, 10) : now;
+    
+    if (now - lastActive >= SESSION_DURATION_MS) {
+      clearUserSession();
+      setLoggedOutState();
+      showToast("30분 동안 활동이 없어 자동 로그아웃되었습니다.", "error");
+      return;
+    }
+
     try {
       const result = await sendRequest({
         action: 'verifyToken',
@@ -76,7 +95,9 @@ document.addEventListener('DOMContentLoaded', async () => {
       if (result.status === 'success') {
         localStorage.setItem('wedding_app_user', result.userName);
         localStorage.setItem('wedding_app_user_side', result.userSide);
+        lastActivityTime = lastActive;
         setLoggedInState(result.userName, result.userSide);
+        startSessionTimer();
       } else {
         clearUserSession();
         setLoggedOutState();
@@ -92,6 +113,88 @@ document.addEventListener('DOMContentLoaded', async () => {
     setLoggedOutState();
   }
 });
+
+// 🔑 미사용 감지 및 5초 뒤 타이머 표기 제어 로직
+function resetActivityTime() {
+  if (!localStorage.getItem('wedding_app_session_token')) return;
+  lastActivityTime = Date.now();
+  localStorage.setItem('wedding_app_last_activity', lastActivityTime.toString());
+  
+  // 사용 중인 상태이므로 표기 숨김 및 타이머 해제 효과
+  if (sessionTimerDisplay) {
+    sessionTimerDisplay.classList.remove('visible');
+  }
+}
+
+function setupActivityTracker() {
+  const events = ['mousemove', 'keydown', 'mousedown', 'touchstart', 'scroll'];
+  let throttleTimer = null;
+
+  events.forEach(eventName => {
+    window.addEventListener(eventName, () => {
+      if (!throttleTimer) {
+        throttleTimer = setTimeout(() => {
+          resetActivityTime();
+          throttleTimer = null;
+        }, 500);
+      }
+    }, { passive: true });
+  });
+}
+
+function startSessionTimer() {
+  if (sessionIntervalId) clearInterval(sessionIntervalId);
+
+  sessionIntervalId = setInterval(() => {
+    const now = Date.now();
+    const elapsed = now - lastActivityTime;
+    const remainingMs = SESSION_DURATION_MS - elapsed;
+
+    if (remainingMs <= 0) {
+      clearInterval(sessionIntervalId);
+      sessionIntervalId = null;
+      clearUserSession();
+      setLoggedOutState();
+      showToast("30분 동안 미사용으로 자동 로그아웃되었습니다.", "error");
+      return;
+    }
+
+    // 마지막 활동 시점으로부터 5초(5000ms) 이상 경과한 경우에만 타이머 표기 노출
+    if (elapsed >= 5000) {
+      updateSessionTimerDisplay(remainingMs);
+      if (sessionTimerDisplay && !sessionTimerDisplay.classList.contains('visible')) {
+        sessionTimerDisplay.classList.add('visible');
+      }
+    } else {
+      if (sessionTimerDisplay && sessionTimerDisplay.classList.contains('visible')) {
+        sessionTimerDisplay.classList.remove('visible');
+      }
+    }
+  }, 1000);
+}
+
+function stopSessionTimer() {
+  if (sessionIntervalId) {
+    clearInterval(sessionIntervalId);
+    sessionIntervalId = null;
+  }
+  if (sessionTimerDisplay) {
+    sessionTimerDisplay.classList.remove('visible');
+  }
+}
+
+function updateSessionTimerDisplay(remainingMs) {
+  const totalSeconds = Math.floor(remainingMs / 1000);
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = totalSeconds % 60;
+
+  const formattedMin = String(minutes).padStart(2, '0');
+  const formattedSec = String(seconds).padStart(2, '0');
+
+  if (sessionTimerCount) {
+    sessionTimerCount.textContent = `${formattedMin}:${formattedSec}`;
+  }
+}
 
 // 🔑 Wedding Day 5초 이상 길게 누르면 admin.html로 이동하는 롱프레스 로직
 function setupLongPressAdminLink() {
@@ -204,12 +307,16 @@ loginForm.addEventListener('submit', async (e) => {
   try {
     const result = await sendRequest({ action: 'login', id, password });
     if (result.status === 'success') {
+      const now = Date.now();
       localStorage.setItem('wedding_app_user', result.userName);
       localStorage.setItem('wedding_app_user_side', result.userSide);
       localStorage.setItem('wedding_app_user_id', result.userId);
       localStorage.setItem('wedding_app_session_token', result.token);
+      localStorage.setItem('wedding_app_last_activity', now.toString());
 
+      lastActivityTime = now;
       setLoggedInState(result.userName, result.userSide);
+      startSessionTimer();
       loginForm.reset();
       showToast("로그인되었습니다.", "success");
     } else {
@@ -555,7 +662,7 @@ editForm.addEventListener('submit', async (e) => {
       loadGiftList();
     } else {
       showToast(`수정 실패: ${result.message}`, "error");
-      if (result.message && (result.message.includes("세션") || result.message.includes("유효하지"))) {
+      if (res.message && (res.message.includes("세션") || res.message.includes("유효하지"))) {
         clearUserSession();
         setLoggedOutState();
       }
@@ -795,6 +902,7 @@ function setLoggedInState(userName, userSide) {
 }
 
 function setLoggedOutState() {
+  stopSessionTimer();
   mainHeader.classList.add('hidden');
   appContent.classList.add('hidden');
   authCard.classList.remove('hidden');
@@ -804,10 +912,12 @@ function setLoggedOutState() {
 }
 
 function clearUserSession() {
+  stopSessionTimer();
   localStorage.removeItem('wedding_app_user');
   localStorage.removeItem('wedding_app_user_side');
   localStorage.removeItem('wedding_app_user_id');
   localStorage.removeItem('wedding_app_session_token');
+  localStorage.removeItem('wedding_app_last_activity');
 }
 
 function escapeHtml(text) {
