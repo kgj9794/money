@@ -106,13 +106,22 @@ body {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  position: relative; /* 탭 정중앙 배치를 위한 기준선 설정 */
 }
 
 .brand { display: flex; align-items: center; gap: 10px; }
 .brand-icon { font-size: 1.5rem; }
 .brand-name { font-size: 1.15rem; font-weight: 700; color: #1864ab; }
 
-.nav-tabs { display: flex; gap: 8px; }
+/* 헤더 중앙 정렬 탭 버튼 */
+.nav-tabs {
+  display: flex;
+  gap: 8px;
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
 .nav-tab {
   background: none;
   border: none;
