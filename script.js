@@ -120,7 +120,6 @@ function resetActivityTime() {
   lastActivityTime = Date.now();
   localStorage.setItem('wedding_app_last_activity', lastActivityTime.toString());
   
-  // 사용 중인 상태이므로 표기 숨김 및 타이머 해제 효과
   if (sessionTimerDisplay) {
     sessionTimerDisplay.classList.remove('visible');
   }
@@ -159,7 +158,6 @@ function startSessionTimer() {
       return;
     }
 
-    // 마지막 활동 시점으로부터 5초(5000ms) 이상 경과한 경우에만 타이머 표기 노출
     if (elapsed >= 5000) {
       updateSessionTimerDisplay(remainingMs);
       if (sessionTimerDisplay && !sessionTimerDisplay.classList.contains('visible')) {
@@ -662,7 +660,7 @@ editForm.addEventListener('submit', async (e) => {
       loadGiftList();
     } else {
       showToast(`수정 실패: ${result.message}`, "error");
-      if (res.message && (res.message.includes("세션") || res.message.includes("유효하지"))) {
+      if (result.message && (result.message.includes("세션") || result.message.includes("유효하지"))) {
         clearUserSession();
         setLoggedOutState();
       }
@@ -890,11 +888,14 @@ function setLoggedInState(userName, userSide) {
   headerUserSideBadge.className = `user-side-badge ${userSide === '신랑' ? 'groom' : 'bride'}`;
 
   authCard.classList.add('hidden');
+  authCard.style.opacity = '1';
 
   mainHeader.classList.remove('hidden');
+  mainHeader.style.opacity = '1';
   triggerAnimation(mainHeader, 'animate-fade-in-down');
 
   appContent.classList.remove('hidden');
+  appContent.style.opacity = '1';
   triggerAnimation(appContent, 'animate-scale-in');
 
   navRegisterBtn.click();
@@ -905,8 +906,11 @@ function setLoggedOutState() {
   stopSessionTimer();
   mainHeader.classList.add('hidden');
   appContent.classList.add('hidden');
+
   authCard.classList.remove('hidden');
+  authCard.style.opacity = '1';
   triggerAnimation(authCard, 'animate-scale-in');
+  
   signupForm.classList.add('hidden');
   loginForm.classList.remove('hidden');
 }
