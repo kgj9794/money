@@ -46,10 +46,19 @@ const editNote = document.getElementById('editNote');
 const closeModalBtn = document.getElementById('closeModalBtn');
 const cancelEditBtn = document.getElementById('cancelEditBtn');
 
+// 튜토리얼 요소
+const tutorialModal = document.getElementById('tutorialModal');
+const closeTutorialBtn = document.getElementById('closeTutorialBtn');
+const dontShowTutorialCheck = document.getElementById('dontShowTutorialCheck');
+
 let cachedGifts = [];
 let activeToast = null;
+let currentAmountAnimationId = null;
+let currentTargetAmount = 0; // 연타 시 목표 금액 누적 상태 유지 변수
 
 document.addEventListener('DOMContentLoaded', () => {
+  setupLongPressAdminLink(); // 5초 길게 누르기 바인딩
+
   const savedUser = localStorage.getItem('wedding_app_user');
   const savedSide = localStorage.getItem('wedding_app_user_side');
   if (savedUser && savedSide) {
@@ -58,6 +67,41 @@ document.addEventListener('DOMContentLoaded', () => {
     setLoggedOutState();
   }
 });
+
+// 🔑 Wedding Day 5초 이상 길게 누르면 admin.html로 이동하는 롱프레스 로직
+function setupLongPressAdminLink() {
+  const heroBadge = document.querySelector('.hero-badge');
+  if (!heroBadge) return;
+
+  let longPressTimer = null;
+
+  const startTimer = () => {
+    longPressTimer = setTimeout(() => {
+      window.location.href = 'admin.html';
+    }, 5000);
+  };
+
+  const clearTimer = () => {
+    if (longPressTimer) {
+      clearTimeout(longPressTimer);
+      longPressTimer = null;
+    }
+  };
+
+  heroBadge.addEventListener('mousedown', startTimer);
+  heroBadge.addEventListener('mouseup', clearTimer);
+  heroBadge.addEventListener('mouseleave', clearTimer);
+
+  heroBadge.addEventListener('touchstart', (e) => {
+    startTimer();
+  }, { passive: true });
+  heroBadge.addEventListener('touchend', clearTimer);
+  heroBadge.addEventListener('touchcancel', clearTimer);
+
+  heroBadge.addEventListener('contextmenu', (e) => {
+    e.preventDefault();
+  });
+}
 
 function triggerAnimation(el, className = 'animate-fade-in-up') {
   el.classList.remove(
@@ -70,6 +114,22 @@ function triggerAnimation(el, className = 'animate-fade-in-up') {
   void el.offsetWidth;
   el.classList.add(className);
 }
+
+// 튜토리얼 자동 표시 및 제어
+function checkAndShowTutorial() {
+  const isHide = localStorage.getItem('wedding_app_tutorial_seen');
+  if (!isHide) {
+    tutorialModal.classList.remove('hidden');
+    triggerAnimation(tutorialModal.querySelector('.modal-content'), 'animate-scale-in');
+  }
+}
+
+closeTutorialBtn.addEventListener('click', () => {
+  if (dontShowTutorialCheck.checked) {
+    localStorage.setItem('wedding_app_tutorial_seen', 'true');
+  }
+  tutorialModal.classList.add('hidden');
+});
 
 // 축의금 등록 탭 이동
 navRegisterBtn.addEventListener('click', () => {
@@ -194,6 +254,18 @@ giftForm.addEventListener('submit', async (e) => {
   const name = nameInput.value.trim();
   const note = document.getElementById('note').value.trim();
 
+  if (!name) {
+    showToast("성함을 입력해주세요.", "error");
+    nameInput.focus();
+    return;
+  }
+
+  if (!rawAmount || Number(rawAmount) <= 0) {
+    showToast("올바른 금액을 입력해주세요.", "error");
+    amountInput.focus();
+    return;
+  }
+
   const submitBtn = document.getElementById('submitBtn');
   submitBtn.disabled = true;
   submitBtn.textContent = "저장 중...";
@@ -213,6 +285,8 @@ giftForm.addEventListener('submit', async (e) => {
       const msg = `[${userSide}측] ${name}님 ${formattedAmount}원 등록 완료`;
       showToast(msg, "success", result.giftData);
       giftForm.reset();
+      currentTargetAmount = 0;
+      nameInput.focus();
     } else {
       showToast(`오류: ${result.message}`, "error");
     }
@@ -337,13 +411,16 @@ function renderTable() {
 listSearchInput.addEventListener('input', renderTable);
 myRegistrationOnly.addEventListener('change', renderTable);
 
+// 항목 삭제 시 작업자(worker) 정보 전달
 async function deleteGiftItem(data) {
   if (confirm(`[${data.target}측] ${data.name}님의 축의금 항목을 삭제하시겠습니까?`)) {
+    const currentUser = localStorage.getItem('wedding_app_user') || '알 수 없음';
     try {
       const res = await sendRequest({
         action: 'deleteGift',
         target: data.target,
-        rowId: String(data.rowId)
+        rowId: String(data.rowId),
+        worker: currentUser
       });
       if (res.status === 'success') {
         showToast("삭제되었습니다.", "success");
@@ -357,6 +434,7 @@ async function deleteGiftItem(data) {
   }
 }
 
+// 항목 수정 시 작업자(worker) 정보 전달
 editForm.addEventListener('submit', async (e) => {
   e.preventDefault();
   const rowId = editRowId.value;
@@ -364,6 +442,7 @@ editForm.addEventListener('submit', async (e) => {
   const name = editName.value.trim();
   const rawAmount = editAmount.value.replace(/,/g, '');
   const note = editNote.value.trim();
+  const currentUser = localStorage.getItem('wedding_app_user') || '알 수 없음';
 
   const saveBtn = document.getElementById('saveEditBtn');
   saveBtn.disabled = true;
@@ -376,7 +455,8 @@ editForm.addEventListener('submit', async (e) => {
       target: target,
       name: name,
       amount: rawAmount,
-      note: note
+      note: note,
+      worker: currentUser
     });
 
     if (result.status === 'success') {
@@ -491,6 +571,48 @@ function closeEditModal() {
 closeModalBtn.addEventListener('click', closeEditModal);
 cancelEditBtn.addEventListener('click', closeEditModal);
 
+// 금액 연속 변경 애니메이션 함수
+function animateAmount(inputEl, startVal, endVal, duration = 180) {
+  if (currentAmountAnimationId) {
+    cancelAnimationFrame(currentAmountAnimationId);
+  }
+
+  const startTime = performance.now();
+  const diff = endVal - startVal;
+
+  inputEl.classList.remove('amount-up', 'amount-down');
+  void inputEl.offsetWidth; // Reflow 트리거
+
+  if (diff > 0) {
+    inputEl.classList.add('amount-up');
+  } else if (diff < 0) {
+    inputEl.classList.add('amount-down');
+  }
+
+  function update(currentTime) {
+    const elapsed = currentTime - startTime;
+    const progress = Math.min(elapsed / duration, 1);
+    
+    // easeOutQuad 곡선 적용
+    const easeProgress = 1 - (1 - progress) * (1 - progress);
+    const currentVal = Math.round(startVal + diff * easeProgress);
+
+    inputEl.value = currentVal > 0 ? currentVal.toLocaleString('ko-KR') : '';
+
+    if (progress < 1) {
+      currentAmountAnimationId = requestAnimationFrame(update);
+    } else {
+      currentAmountAnimationId = null;
+      inputEl.value = endVal > 0 ? endVal.toLocaleString('ko-KR') : '';
+      setTimeout(() => {
+        inputEl.classList.remove('amount-up', 'amount-down');
+      }, 100);
+    }
+  }
+
+  currentAmountAnimationId = requestAnimationFrame(update);
+}
+
 // 퀵 금액 버튼
 document.querySelectorAll('.btn-quick[data-amount]').forEach(button => {
   button.addEventListener('click', () => {
@@ -498,40 +620,61 @@ document.querySelectorAll('.btn-quick[data-amount]').forEach(button => {
     const currentRaw = amountInput.value.replace(/,/g, '');
     const currentNum = Number(currentRaw) || 0;
 
-    amountInput.value = (currentNum + addValue).toLocaleString('ko-KR');
+    let baseNum = currentAmountAnimationId ? currentTargetAmount : currentNum;
+    currentTargetAmount = baseNum + addValue;
+
+    animateAmount(amountInput, currentNum, currentTargetAmount, 200);
   });
 });
 
 document.getElementById('resetAmountBtn').addEventListener('click', () => {
-  amountInput.value = '';
+  const currentRaw = amountInput.value.replace(/,/g, '');
+  const currentNum = Number(currentRaw) || 0;
+  currentTargetAmount = 0;
+  
+  if (currentNum > 0) {
+    animateAmount(amountInput, currentNum, 0, 160);
+  } else {
+    amountInput.value = '';
+  }
 });
 
-// 키보드 방향키(ArrowUp / ArrowDown) 조작으로 1만원 단위 금액 조절
-function handleAmountArrowKeys(e) {
+// 키보드 방향키(ArrowUp / ArrowDown) 조작 및 엔터(Enter) 지원
+function handleAmountKeyEvents(e) {
   if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
     e.preventDefault();
     const currentRaw = amountInput.value.replace(/,/g, '');
-    let currentNum = Number(currentRaw) || 0;
+    const currentNum = Number(currentRaw) || 0;
+
+    let baseNum = currentAmountAnimationId ? currentTargetAmount : currentNum;
 
     if (e.key === 'ArrowUp') {
-      currentNum += 10000;
+      currentTargetAmount = baseNum + 10000;
     } else if (e.key === 'ArrowDown') {
-      currentNum = Math.max(0, currentNum - 10000);
+      currentTargetAmount = Math.max(0, baseNum - 10000);
     }
 
-    amountInput.value = currentNum > 0 ? currentNum.toLocaleString('ko-KR') : '';
+    if (currentNum !== currentTargetAmount) {
+      animateAmount(amountInput, currentNum, currentTargetAmount, 160);
+    }
+  } else if (e.key === 'Enter') {
+    e.preventDefault();
+    giftForm.requestSubmit();
   }
 }
 
-// 성함 입력란 및 금액 입력란 모두 방향키 조작 지원
+// 성함 입력란 및 금액 입력란 방향키/엔터 이벤트 연동
 if (nameInput) {
-  nameInput.addEventListener('keydown', handleAmountArrowKeys);
+  nameInput.addEventListener('keydown', handleAmountKeyEvents);
 }
 if (amountInput) {
-  amountInput.addEventListener('keydown', handleAmountArrowKeys);
+  amountInput.addEventListener('keydown', handleAmountKeyEvents);
+  
   amountInput.addEventListener('input', (e) => {
     let val = e.target.value.replace(/[^0-9]/g, '');
-    e.target.value = val ? Number(val).toLocaleString('ko-KR') : '';
+    const num = val ? Number(val) : 0;
+    e.target.value = num ? num.toLocaleString('ko-KR') : '';
+    currentTargetAmount = num;
   });
 }
 
@@ -563,6 +706,7 @@ function setLoggedInState(userName, userSide) {
   triggerAnimation(appContent, 'animate-scale-in');
 
   navRegisterBtn.click();
+  checkAndShowTutorial();
 }
 
 function setLoggedOutState() {
