@@ -56,14 +56,39 @@ let activeToast = null;
 let currentAmountAnimationId = null;
 let currentTargetAmount = 0; // 연타 시 목표 금액 누적 상태 유지 변수
 
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
   setupLongPressAdminLink(); // 5초 길게 누르기 바인딩
 
   const savedUser = localStorage.getItem('wedding_app_user');
   const savedSide = localStorage.getItem('wedding_app_user_side');
-  if (savedUser && savedSide) {
-    setLoggedInState(savedUser, savedSide);
+  const savedUserId = localStorage.getItem('wedding_app_user_id');
+  const savedToken = localStorage.getItem('wedding_app_session_token');
+
+  // 로컬 스토리지에 세션 정보가 존재하면 서버 검증 요청
+  if (savedUser && savedSide && savedUserId && savedToken) {
+    try {
+      const result = await sendRequest({
+        action: 'verifyToken',
+        userId: savedUserId,
+        token: savedToken
+      });
+
+      if (result.status === 'success') {
+        localStorage.setItem('wedding_app_user', result.userName);
+        localStorage.setItem('wedding_app_user_side', result.userSide);
+        setLoggedInState(result.userName, result.userSide);
+      } else {
+        clearUserSession();
+        setLoggedOutState();
+        showToast("세션이 만료되었습니다. 다시 로그인해주세요.", "error");
+      }
+    } catch (err) {
+      clearUserSession();
+      setLoggedOutState();
+      showToast("네트워크 오류로 세션을 확인할 수 없습니다.", "error");
+    }
   } else {
+    clearUserSession();
     setLoggedOutState();
   }
 });
@@ -181,6 +206,9 @@ loginForm.addEventListener('submit', async (e) => {
     if (result.status === 'success') {
       localStorage.setItem('wedding_app_user', result.userName);
       localStorage.setItem('wedding_app_user_side', result.userSide);
+      localStorage.setItem('wedding_app_user_id', result.userId);
+      localStorage.setItem('wedding_app_session_token', result.token);
+
       setLoggedInState(result.userName, result.userSide);
       loginForm.reset();
       showToast("로그인되었습니다.", "success");
@@ -232,8 +260,7 @@ signupForm.addEventListener('submit', async (e) => {
 
 // [3] 로그아웃
 headerLogoutBtn.addEventListener('click', () => {
-  localStorage.removeItem('wedding_app_user');
-  localStorage.removeItem('wedding_app_user_side');
+  clearUserSession();
   setLoggedOutState();
   showToast("로그아웃 되었습니다.", "success");
 });
@@ -242,7 +269,6 @@ headerLogoutBtn.addEventListener('click', () => {
 giftForm.addEventListener('submit', async (e) => {
   e.preventDefault();
 
-  // 금액 조절 애니메이션 진행 중 제출된 경우 애니메이션 즉시 중단 및 최종 목표 금액 적용
   if (currentAmountAnimationId) {
     cancelAnimationFrame(currentAmountAnimationId);
     currentAmountAnimationId = null;
@@ -252,8 +278,12 @@ giftForm.addEventListener('submit', async (e) => {
 
   const currentUser = localStorage.getItem('wedding_app_user');
   const userSide = localStorage.getItem('wedding_app_user_side');
-  if (!currentUser || !userSide) {
+  const userId = localStorage.getItem('wedding_app_user_id');
+  const token = localStorage.getItem('wedding_app_session_token');
+
+  if (!currentUser || !userSide || !userId || !token) {
     showToast("로그인이 필요합니다.", "error");
+    clearUserSession();
     setLoggedOutState();
     return;
   }
@@ -281,11 +311,11 @@ giftForm.addEventListener('submit', async (e) => {
   try {
     const result = await sendRequest({
       action: 'addGift',
-      target: userSide,
+      userId: userId,
+      token: token,
       name: name,
       amount: rawAmount,
-      note: note,
-      registeredBy: currentUser
+      note: note
     });
 
     if (result.status === 'success') {
@@ -297,6 +327,10 @@ giftForm.addEventListener('submit', async (e) => {
       nameInput.focus();
     } else {
       showToast(`오류: ${result.message}`, "error");
+      if (result.message && (result.message.includes("세션") || result.message.includes("유효하지"))) {
+        clearUserSession();
+        setLoggedOutState();
+      }
     }
   } catch (err) {
     showToast("전송 실패! 네트워크 상태를 확인해 주세요.", "error");
@@ -309,6 +343,15 @@ giftForm.addEventListener('submit', async (e) => {
 // [5] 본인 측 축의금 목록만 불러오기
 async function loadGiftList() {
   const userSide = localStorage.getItem('wedding_app_user_side');
+  const userId = localStorage.getItem('wedding_app_user_id');
+  const token = localStorage.getItem('wedding_app_session_token');
+
+  if (!userId || !token) {
+    clearUserSession();
+    setLoggedOutState();
+    showToast("로그인이 필요합니다.", "error");
+    return;
+  }
 
   giftTableBody.innerHTML = `
     <tr>
@@ -321,7 +364,11 @@ async function loadGiftList() {
   emptyListState.classList.add('hidden');
 
   try {
-    const result = await sendRequest({ action: 'getGifts', userSide: userSide });
+    const result = await sendRequest({
+      action: 'getGifts',
+      userId: userId,
+      token: token
+    });
     if (result.status === 'success') {
       cachedGifts = result.gifts || [];
       updateStats(cachedGifts, userSide);
@@ -329,6 +376,10 @@ async function loadGiftList() {
     } else {
       giftTableBody.innerHTML = '';
       showToast(result.message || "목록을 불러오지 못했습니다.", "error");
+      if (result.message && (result.message.includes("세션") || result.message.includes("유효하지"))) {
+        clearUserSession();
+        setLoggedOutState();
+      }
     }
   } catch (err) {
     giftTableBody.innerHTML = '';
@@ -419,22 +470,35 @@ function renderTable() {
 listSearchInput.addEventListener('input', renderTable);
 myRegistrationOnly.addEventListener('change', renderTable);
 
-// 항목 삭제 시 작업자(worker) 정보 전달
+// 항목 삭제 시 세션 토큰 검증
 async function deleteGiftItem(data) {
   if (confirm(`[${data.target}측] ${data.name}님의 축의금 항목을 삭제하시겠습니까?`)) {
-    const currentUser = localStorage.getItem('wedding_app_user') || '알 수 없음';
+    const userId = localStorage.getItem('wedding_app_user_id');
+    const token = localStorage.getItem('wedding_app_session_token');
+
+    if (!userId || !token) {
+      clearUserSession();
+      setLoggedOutState();
+      showToast("로그인이 필요합니다.", "error");
+      return;
+    }
+
     try {
       const res = await sendRequest({
         action: 'deleteGift',
-        target: data.target,
-        rowId: String(data.rowId),
-        worker: currentUser
+        userId: userId,
+        token: token,
+        rowId: String(data.rowId)
       });
       if (res.status === 'success') {
         showToast("삭제되었습니다.", "success");
         loadGiftList();
       } else {
         showToast(res.message, "error");
+        if (res.message && (res.message.includes("세션") || res.message.includes("유효하지"))) {
+          clearUserSession();
+          setLoggedOutState();
+        }
       }
     } catch (err) {
       showToast("삭제 실패!", "error");
@@ -442,15 +506,23 @@ async function deleteGiftItem(data) {
   }
 }
 
-// 항목 수정 시 작업자(worker) 정보 전달
+// 항목 수정 시 세션 토큰 검증
 editForm.addEventListener('submit', async (e) => {
   e.preventDefault();
   const rowId = editRowId.value;
-  const target = editTarget.value;
   const name = editName.value.trim();
   const rawAmount = editAmount.value.replace(/,/g, '');
   const note = editNote.value.trim();
-  const currentUser = localStorage.getItem('wedding_app_user') || '알 수 없음';
+
+  const userId = localStorage.getItem('wedding_app_user_id');
+  const token = localStorage.getItem('wedding_app_session_token');
+
+  if (!userId || !token) {
+    clearUserSession();
+    setLoggedOutState();
+    showToast("로그인이 필요합니다.", "error");
+    return;
+  }
 
   const saveBtn = document.getElementById('saveEditBtn');
   saveBtn.disabled = true;
@@ -459,17 +531,18 @@ editForm.addEventListener('submit', async (e) => {
   try {
     const result = await sendRequest({
       action: 'updateGift',
+      userId: userId,
+      token: token,
       rowId: String(rowId),
-      target: target,
       name: name,
       amount: rawAmount,
-      note: note,
-      worker: currentUser
+      note: note
     });
 
     if (result.status === 'success') {
+      const userSide = localStorage.getItem('wedding_app_user_side') || '신랑';
       const formattedAmount = Number(rawAmount).toLocaleString();
-      const updatedMsg = `[${target}측] ${name}님 ${formattedAmount}원 (수정됨)`;
+      const updatedMsg = `[${userSide}측] ${name}님 ${formattedAmount}원 (수정됨)`;
       
       if (activeToast) {
         activeToast.querySelector('.toast-body').textContent = updatedMsg;
@@ -482,6 +555,10 @@ editForm.addEventListener('submit', async (e) => {
       loadGiftList();
     } else {
       showToast(`수정 실패: ${result.message}`, "error");
+      if (result.message && (result.message.includes("세션") || result.message.includes("유효하지"))) {
+        clearUserSession();
+        setLoggedOutState();
+      }
     }
   } catch (err) {
     showToast("수정 요청 실패!", "error");
@@ -601,7 +678,6 @@ function animateAmount(inputEl, startVal, endVal, duration = 180) {
     const elapsed = currentTime - startTime;
     const progress = Math.min(elapsed / duration, 1);
     
-    // easeOutQuad 곡선 적용
     const easeProgress = 1 - (1 - progress) * (1 - progress);
     const currentVal = Math.round(startVal + diff * easeProgress);
 
@@ -649,7 +725,6 @@ document.getElementById('resetAmountBtn').addEventListener('click', () => {
 
 // 키보드 방향키(ArrowUp / ArrowDown) 조작 및 엔터(Enter) 지원
 function handleAmountKeyEvents(e) {
-  // 한글 입력(조합) 중 발생하는 중복 키 이벤트 방지
   if (e.isComposing || e.keyCode === 229) return;
 
   if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
@@ -674,7 +749,6 @@ function handleAmountKeyEvents(e) {
   }
 }
 
-// 성함 입력란 및 금액 입력란 방향키/엔터 이벤트 연동
 if (nameInput) {
   nameInput.addEventListener('keydown', handleAmountKeyEvents);
 }
@@ -727,6 +801,13 @@ function setLoggedOutState() {
   triggerAnimation(authCard, 'animate-scale-in');
   signupForm.classList.add('hidden');
   loginForm.classList.remove('hidden');
+}
+
+function clearUserSession() {
+  localStorage.removeItem('wedding_app_user');
+  localStorage.removeItem('wedding_app_user_side');
+  localStorage.removeItem('wedding_app_user_id');
+  localStorage.removeItem('wedding_app_session_token');
 }
 
 function escapeHtml(text) {
