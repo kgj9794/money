@@ -20,6 +20,7 @@ const loginForm = document.getElementById('loginForm');
 const signupForm = document.getElementById('signupForm');
 const giftForm = document.getElementById('giftForm');
 
+const nameInput = document.getElementById('name');
 const amountInput = document.getElementById('amount');
 const toastContainer = document.getElementById('toastContainer');
 
@@ -72,7 +73,6 @@ function triggerAnimation(el, className = 'animate-fade-in-up') {
 
 // 축의금 등록 탭 이동
 navRegisterBtn.addEventListener('click', () => {
-  // 이미 활성화되어 있으면 애니메이션 중복 실행 방지
   if (navRegisterBtn.classList.contains('active')) return;
 
   navRegisterBtn.classList.add('active');
@@ -84,7 +84,6 @@ navRegisterBtn.addEventListener('click', () => {
 
 // 등록 내역 목록 탭 이동
 navListBtn.addEventListener('click', () => {
-  // 이미 활성화되어 있으면 애니메이션 중복 실행 방지
   if (navListBtn.classList.contains('active')) return;
 
   navListBtn.classList.add('active');
@@ -192,7 +191,7 @@ giftForm.addEventListener('submit', async (e) => {
   }
 
   const rawAmount = amountInput.value.replace(/,/g, '');
-  const name = document.getElementById('name').value.trim();
+  const name = nameInput.value.trim();
   const note = document.getElementById('note').value.trim();
 
   const submitBtn = document.getElementById('submitBtn');
@@ -492,6 +491,7 @@ function closeEditModal() {
 closeModalBtn.addEventListener('click', closeEditModal);
 cancelEditBtn.addEventListener('click', closeEditModal);
 
+// 퀵 금액 버튼
 document.querySelectorAll('.btn-quick[data-amount]').forEach(button => {
   button.addEventListener('click', () => {
     const addValue = Number(button.getAttribute('data-amount'));
@@ -506,10 +506,34 @@ document.getElementById('resetAmountBtn').addEventListener('click', () => {
   amountInput.value = '';
 });
 
-amountInput.addEventListener('input', (e) => {
-  let val = e.target.value.replace(/[^0-9]/g, '');
-  e.target.value = val ? Number(val).toLocaleString('ko-KR') : '';
-});
+// 키보드 방향키(ArrowUp / ArrowDown) 조작으로 1만원 단위 금액 조절
+function handleAmountArrowKeys(e) {
+  if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
+    e.preventDefault();
+    const currentRaw = amountInput.value.replace(/,/g, '');
+    let currentNum = Number(currentRaw) || 0;
+
+    if (e.key === 'ArrowUp') {
+      currentNum += 10000;
+    } else if (e.key === 'ArrowDown') {
+      currentNum = Math.max(0, currentNum - 10000);
+    }
+
+    amountInput.value = currentNum > 0 ? currentNum.toLocaleString('ko-KR') : '';
+  }
+}
+
+// 성함 입력란 및 금액 입력란 모두 방향키 조작 지원
+if (nameInput) {
+  nameInput.addEventListener('keydown', handleAmountArrowKeys);
+}
+if (amountInput) {
+  amountInput.addEventListener('keydown', handleAmountArrowKeys);
+  amountInput.addEventListener('input', (e) => {
+    let val = e.target.value.replace(/[^0-9]/g, '');
+    e.target.value = val ? Number(val).toLocaleString('ko-KR') : '';
+  });
+}
 
 editAmount.addEventListener('input', (e) => {
   let val = e.target.value.replace(/[^0-9]/g, '');
