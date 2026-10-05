@@ -49,12 +49,24 @@
     .badge-status-approved { background-color: #d3f9d8; color: #2b8a3e; }
     .badge-status-rejected { background-color: #ffe3e3; color: #e03131; }
 
+    /* 작업 구분 뱃지 */
+    .badge-action {
+      display: inline-block;
+      padding: 3px 8px;
+      border-radius: 6px;
+      font-size: 0.78rem;
+      font-weight: 700;
+    }
+    .badge-action-edit { background-color: #e7f5ff; color: #1c7ed6; }
+    .badge-action-delete { background-color: #fff5f5; color: #e03131; }
+
     /* 서브 탭 스타일 */
     .admin-tab-group {
       display: flex;
       gap: 10px;
       border-bottom: 2px solid #e9ecef;
       margin-bottom: 20px;
+      overflow-x: auto;
     }
 
     .admin-tab-btn {
@@ -68,6 +80,7 @@
       border-bottom: 3px solid transparent;
       margin-bottom: -2px;
       transition: all 0.2s;
+      white-space: nowrap;
     }
 
     .admin-tab-btn.active {
@@ -155,7 +168,7 @@
           <div class="panel-header flex-between">
             <div>
               <h2 class="panel-title">전체 데이터 조회 및 관리</h2>
-              <p class="panel-sub">사용자 상태 관리 및 신랑/신부측 축의금 상세 정보를 확인하세요.</p>
+              <p class="panel-sub">사용자 상태 관리, 축의금 리스트 및 수정/삭제 이력을 확인하세요.</p>
             </div>
             <button type="button" id="refreshAllBtn" class="btn-secondary btn-sm">새로고침</button>
           </div>
@@ -165,6 +178,7 @@
             <button type="button" class="admin-tab-btn active" data-tab="tabUsers">회원 상태 관리</button>
             <button type="button" class="admin-tab-btn" data-tab="tabGroom">신랑측 축의금 리스트</button>
             <button type="button" class="admin-tab-btn" data-tab="tabBride">신부측 축의금 리스트</button>
+            <button type="button" class="admin-tab-btn" data-tab="tabLogs">변경/삭제 이력</button>
           </div>
 
           <!-- TAB 1: 회원 관리 -->
@@ -232,6 +246,28 @@
             </div>
           </div>
 
+          <!-- TAB 4: 변경/삭제 이력 -->
+          <div id="tabLogs" class="admin-tab-content hidden">
+            <div class="table-responsive">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>일시</th>
+                    <th>작업자</th>
+                    <th>구분</th>
+                    <th>측</th>
+                    <th>대상자</th>
+                    <th>상세 변경 내역</th>
+                  </tr>
+                </thead>
+                <tbody id="logsTableBody"></tbody>
+              </table>
+              <div id="emptyLogsState" class="empty-state hidden">
+                <span>변경 및 삭제 이력이 없습니다.</span>
+              </div>
+            </div>
+          </div>
+
         </section>
       </main>
     </div>
@@ -265,6 +301,8 @@
     const emptyGroomState = document.getElementById('emptyGroomState');
     const brideGiftsTableBody = document.getElementById('brideGiftsTableBody');
     const emptyBrideState = document.getElementById('emptyBrideState');
+    const logsTableBody = document.getElementById('logsTableBody');
+    const emptyLogsState = document.getElementById('emptyLogsState');
 
     document.addEventListener('DOMContentLoaded', () => {
       const savedAdminPw = sessionStorage.getItem('admin_key');
@@ -340,7 +378,7 @@
     });
 
     async function loadAllDashboardData() {
-      await Promise.all([loadUsersData(), loadGiftsData()]);
+      await Promise.all([loadUsersData(), loadGiftsData(), loadLogsData()]);
     }
 
     // 1. 회원 목록 조회
@@ -423,7 +461,6 @@
           const brideCount = res.brideCount !== undefined ? res.brideCount : brideGifts.length;
           const totalCount = res.allCount !== undefined ? res.allCount : (groomCount + brideCount);
 
-          // 금액 및 건수 반영
           statGroomTotal.textContent = `${res.groomTotal.toLocaleString()}원`;
           statGroomCount.textContent = `등록: ${groomCount.toLocaleString()}건`;
 
@@ -461,6 +498,48 @@
           <td><small class="text-muted">${gift.timestamp || '-'}</small></td>
         `;
         tbody.appendChild(tr);
+      });
+    }
+
+    // 3. 변경/삭제 이력(LOGS) 조회
+    async function loadLogsData() {
+      logsTableBody.innerHTML = `<tr><td colspan="6" class="table-loading"><div class="spinner"></div><div>이력 불러오는 중...</div></td></tr>`;
+      emptyLogsState.classList.add('hidden');
+
+      const adminKey = sessionStorage.getItem('admin_key');
+      try {
+        const res = await sendRequest({ action: 'getAllLogsAdmin', adminPassword: adminKey });
+        if (res.status === 'success') {
+          renderLogsTable(res.logs || []);
+        } else {
+          showToast(res.message, "error");
+        }
+      } catch (err) {
+        showToast("이력 데이터 로딩 실패", "error");
+      }
+    }
+
+    function renderLogsTable(logs) {
+      logsTableBody.innerHTML = '';
+      if (logs.length === 0) {
+        emptyLogsState.classList.remove('hidden');
+        return;
+      }
+      emptyLogsState.classList.add('hidden');
+
+      logs.forEach(log => {
+        const tr = document.createElement('tr');
+        const badgeClass = log.actionType === '수정' ? 'badge-action-edit' : 'badge-action-delete';
+
+        tr.innerHTML = `
+          <td><small class="text-muted">${escapeHtml(log.timestamp)}</small></td>
+          <td><strong>${escapeHtml(log.worker)}</strong></td>
+          <td><span class="badge-action ${badgeClass}">${escapeHtml(log.actionType)}</span></td>
+          <td><span class="badge-target ${log.side === '신랑' ? 'badge-groom' : 'badge-bride'}">${escapeHtml(log.side)}측</span></td>
+          <td><strong>${escapeHtml(log.name)}</strong></td>
+          <td><small style="word-break: break-all;">${escapeHtml(log.details)}</small></td>
+        `;
+        logsTableBody.appendChild(tr);
       });
     }
 
