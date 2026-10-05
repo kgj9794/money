@@ -5,8 +5,29 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>축의금 관리 시스템</title>
   <link rel="stylesheet" href="style.css">
-    <!-- Favicon 설정 -->
+  <!-- Favicon 설정 -->
   <link rel="icon" type="image/png" href="favi.png">
+  <style>
+    .session-timer {
+      font-size: 0.82rem;
+      color: #868e96;
+      background-color: #f8f9fa;
+      border: 1px solid #e9ecef;
+      padding: 3px 8px;
+      border-radius: 6px;
+      font-weight: 600;
+      white-space: nowrap;
+      opacity: 0;
+      transition: opacity 0.3s ease;
+      pointer-events: none;
+    }
+    .session-timer.visible {
+      opacity: 1;
+    }
+    .session-timer strong {
+      color: #e03131;
+    }
+  </style>
 </head>
 <body>
   <!-- 토스트 알림 컨테이너 -->
@@ -23,6 +44,7 @@
         <button type="button" id="navListBtn" class="nav-tab">등록 내역 목록</button>
       </nav>
       <div class="user-profile">
+        <span id="sessionTimerDisplay" class="session-timer">미사용으로 <strong id="sessionTimerCount">30:00</strong> 뒤 로그아웃</span>
         <span class="user-greeting">
           <strong id="headerUserName">-</strong>님
           <span id="headerUserSideBadge" class="user-side-badge groom">신랑측</span>
