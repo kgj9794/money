@@ -8,6 +8,11 @@
   <!-- Favicon 설정 -->
   <link rel="icon" type="image/png" href="favi.png">
   <style>
+    /* 깜빡임 방지를 위해 인증 카드와 앱 컨텐츠를 처음에 모두 숨김 */
+    #authCard, #appContent, #mainHeader {
+      opacity: 0;
+      transition: opacity 0.2s ease;
+    }
     .session-timer {
       font-size: 0.82rem;
       color: #868e96;
@@ -56,7 +61,7 @@
 
   <div class="wrapper">
     <!-- 인증 카드 (로그인 / 회원가입) -->
-    <div id="authCard" class="card">
+    <div id="authCard" class="card hidden">
       <div class="card-hero">
         <span class="hero-badge">Wedding Day</span>
         <h1 class="hero-title">축의금 관리 시스템</h1>
@@ -68,11 +73,11 @@
           <h2 class="auth-title">로그인</h2>
           <div class="form-group">
             <label for="loginId">아이디</label>
-            <input type="text" id="loginId" placeholder="아이디를 입력하세요" required>
+            <input type="text" id="loginId" placeholder="아이디를 입력하세요" required autocomplete="off">
           </div>
           <div class="form-group">
             <label for="loginPw">비밀번호</label>
-            <input type="password" id="loginPw" placeholder="비밀번호를 입력하세요" required>
+            <input type="password" id="loginPw" placeholder="비밀번호를 입력하세요" required autocomplete="current-password">
           </div>
           <button type="submit" id="loginSubmitBtn" class="btn-primary">로그인</button>
           <div class="auth-footer">
@@ -99,19 +104,19 @@
           </div>
           <div class="form-group">
             <label for="signupName">이름 <span class="required">*</span></label>
-            <input type="text" id="signupName" placeholder="이름을 입력하세요" required>
+            <input type="text" id="signupName" placeholder="이름을 입력하세요" required autocomplete="off">
           </div>
           <div class="form-group">
             <label for="signupId">아이디 <span class="required">*</span></label>
-            <input type="text" id="signupId" placeholder="아이디를 입력하세요" required>
+            <input type="text" id="signupId" placeholder="아이디를 입력하세요" required autocomplete="off">
           </div>
           <div class="form-group">
             <label for="signupPw">비밀번호 <span class="required">*</span></label>
-            <input type="password" id="signupPw" placeholder="비밀번호를 입력하세요" required>
+            <input type="password" id="signupPw" placeholder="비밀번호를 입력하세요" required autocomplete="new-password">
           </div>
           <div class="form-group">
             <label for="signupPwConfirm">비밀번호 확인 <span class="required">*</span></label>
-            <input type="password" id="signupPwConfirm" placeholder="비밀번호를 다시 입력하세요" required>
+            <input type="password" id="signupPwConfirm" placeholder="비밀번호를 다시 입력하세요" required autocomplete="new-password">
           </div>
           <button type="submit" id="signupSubmitBtn" class="btn-primary">회원가입 신청</button>
           <div class="auth-footer">
@@ -133,11 +138,12 @@
         <form id="giftForm">
           <div class="form-group">
             <label for="name">성함 <span class="required">*</span></label>
-            <input type="text" id="name" placeholder="예: 홍길동" required>
+            <!-- autocomplete="off" 추가하여 브라우저 자동완성 팝업 차단 -->
+            <input type="text" id="name" placeholder="예: 홍길동" required autocomplete="off">
           </div>
           <div class="form-group">
             <label for="amount">금액 (원) <span class="required">*</span></label>
-            <input type="text" id="amount" placeholder="0" required>
+            <input type="text" id="amount" placeholder="0" required autocomplete="off">
             <div class="quick-amount-group">
               <button type="button" class="btn-quick" data-amount="10000">+1만</button>
               <button type="button" class="btn-quick" data-amount="50000">+5만</button>
@@ -148,7 +154,7 @@
           </div>
           <div class="form-group">
             <label for="note">메모 / 비고</label>
-            <textarea id="note" placeholder="소속, 관계 또는 기타 참고사항을 입력하세요"></textarea>
+            <textarea id="note" placeholder="소속, 관계 또는 기타 참고사항을 입력하세요" autocomplete="off"></textarea>
           </div>
           <button type="submit" id="submitBtn" class="btn-primary">저장하기</button>
         </form>
@@ -179,7 +185,7 @@
         <!-- 필터 및 검색 바 -->
         <div class="filter-bar">
           <div class="search-box">
-            <input type="text" id="listSearchInput" placeholder="이름 또는 메모 검색...">
+            <input type="text" id="listSearchInput" placeholder="이름 또는 메모 검색..." autocomplete="off">
           </div>
           <div class="filter-group">
             <label class="checkbox-label">
@@ -227,15 +233,15 @@
         <input type="hidden" id="editTarget">
         <div class="form-group">
           <label for="editName">성함 <span class="required">*</span></label>
-          <input type="text" id="editName" required>
+          <input type="text" id="editName" required autocomplete="off">
         </div>
         <div class="form-group">
           <label for="editAmount">금액 (원) <span class="required">*</span></label>
-          <input type="text" id="editAmount" required>
+          <input type="text" id="editAmount" required autocomplete="off">
         </div>
         <div class="form-group">
           <label for="editNote">메모 / 비고</label>
-          <textarea id="editNote"></textarea>
+          <textarea id="editNote" autocomplete="off"></textarea>
         </div>
         <div class="modal-actions">
           <button type="button" id="cancelEditBtn" class="btn-secondary" style="flex: 1;">취소</button>
