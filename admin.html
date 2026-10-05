@@ -35,6 +35,7 @@
 
     .admin-stat-label { font-size: 0.85rem; color: #868e96; font-weight: 600; margin-bottom: 6px; }
     .admin-stat-value { font-size: 1.5rem; font-weight: 800; color: #212529; }
+    .admin-stat-sub { font-size: 0.88rem; color: #495057; font-weight: 700; margin-top: 4px; }
 
     /* 상태 뱃지 */
     .badge-status {
@@ -130,18 +131,22 @@
           <div class="admin-stat-card groom">
             <div class="admin-stat-label">신랑측 총 축의금</div>
             <div class="admin-stat-value" id="statGroomTotal">0원</div>
+            <div class="admin-stat-sub" id="statGroomCount">등록: 0건</div>
           </div>
           <div class="admin-stat-card bride">
             <div class="admin-stat-label">신부측 총 축의금</div>
             <div class="admin-stat-value" id="statBrideTotal">0원</div>
+            <div class="admin-stat-sub" id="statBrideCount">등록: 0건</div>
           </div>
           <div class="admin-stat-card total">
             <div class="admin-stat-label">전체 합계 금액</div>
             <div class="admin-stat-value" id="statAllTotal">0원</div>
+            <div class="admin-stat-sub" id="statAllCount">총 등록: 0건</div>
           </div>
           <div class="admin-stat-card users">
             <div class="admin-stat-label">총 사용자 수</div>
             <div class="admin-stat-value" id="statUserTotal">0명</div>
+            <div class="admin-stat-sub" style="color: #868e96; font-weight: 500;">계정 관리 현황</div>
           </div>
         </div>
 
@@ -246,8 +251,11 @@
 
     // 통계 요소
     const statGroomTotal = document.getElementById('statGroomTotal');
+    const statGroomCount = document.getElementById('statGroomCount');
     const statBrideTotal = document.getElementById('statBrideTotal');
+    const statBrideCount = document.getElementById('statBrideCount');
     const statAllTotal = document.getElementById('statAllTotal');
+    const statAllCount = document.getElementById('statAllCount');
     const statUserTotal = document.getElementById('statUserTotal');
 
     // 테이블 요소
@@ -408,13 +416,25 @@
       try {
         const res = await sendRequest({ action: 'getAllGiftsAdmin', adminPassword: adminKey });
         if (res.status === 'success') {
-          // 총액 통계 반영
-          statGroomTotal.textContent = `${res.groomTotal.toLocaleString()}원`;
-          statBrideTotal.textContent = `${res.brideTotal.toLocaleString()}원`;
-          statAllTotal.textContent = `${(res.groomTotal + res.brideTotal).toLocaleString()}원`;
+          const groomGifts = res.groomGifts || [];
+          const brideGifts = res.brideGifts || [];
+          
+          const groomCount = res.groomCount !== undefined ? res.groomCount : groomGifts.length;
+          const brideCount = res.brideCount !== undefined ? res.brideCount : brideGifts.length;
+          const totalCount = res.allCount !== undefined ? res.allCount : (groomCount + brideCount);
 
-          renderGiftsTable(groomGiftsTableBody, emptyGroomState, res.groomGifts || []);
-          renderGiftsTable(brideGiftsTableBody, emptyBrideState, res.brideGifts || []);
+          // 금액 및 건수 반영
+          statGroomTotal.textContent = `${res.groomTotal.toLocaleString()}원`;
+          statGroomCount.textContent = `등록: ${groomCount.toLocaleString()}건`;
+
+          statBrideTotal.textContent = `${res.brideTotal.toLocaleString()}원`;
+          statBrideCount.textContent = `등록: ${brideCount.toLocaleString()}건`;
+
+          statAllTotal.textContent = `${(res.groomTotal + res.brideTotal).toLocaleString()}원`;
+          statAllCount.textContent = `총 등록: ${totalCount.toLocaleString()}건`;
+
+          renderGiftsTable(groomGiftsTableBody, emptyGroomState, groomGifts);
+          renderGiftsTable(brideGiftsTableBody, emptyBrideState, brideGifts);
         } else {
           showToast(res.message, "error");
         }
