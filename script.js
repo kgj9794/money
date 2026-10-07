@@ -65,8 +65,9 @@ let sessionIntervalId = null;
 let lastActivityTime = Date.now();
 
 document.addEventListener('DOMContentLoaded', async () => {
-  setupLongPressAdminLink(); // 5초 길게 누르기 바인딩
-  setupActivityTracker();    // 사용자 활동 감지 바인딩
+  setupLongPressAdminLink();   // 🔑 "Wedding Day" 뱃지 5초 내 5회 터치/클릭 바인딩
+  setupBrandClickAdminLink();  // 🔑 "축의금 관리" 글씨 5초 내 5회 터치/클릭 바인딩
+  setupActivityTracker();      // 사용자 활동 감지 바인딩
 
   const savedUser = localStorage.getItem('wedding_app_user');
   const savedSide = localStorage.getItem('wedding_app_user_side');
@@ -113,6 +114,49 @@ document.addEventListener('DOMContentLoaded', async () => {
     setLoggedOutState();
   }
 });
+
+// 🔑 공통: 5초 이내에 5번 클릭/터치 시 admin.html 이동 처리 함수
+function bind5ClickAdminLink(element) {
+  if (!element) return;
+  let clickCount = 0;
+  let clickTimer = null;
+
+  element.style.cursor = 'pointer';
+
+  element.addEventListener('click', () => {
+    clickCount++;
+
+    if (clickCount === 1) {
+      clickTimer = setTimeout(() => {
+        clickCount = 0;
+      }, 5000);
+    }
+
+    if (clickCount >= 5) {
+      if (clickTimer) clearTimeout(clickTimer);
+      clickCount = 0;
+      window.location.href = 'admin.html';
+    }
+  });
+}
+
+// 🔑 "축의금 관리" 글씨 5초 내 5번 클릭/터치 시 이동
+function setupBrandClickAdminLink() {
+  const brandNames = document.querySelectorAll('.brand-name');
+  if (!brandNames || brandNames.length === 0) return;
+
+  brandNames.forEach(brandName => {
+    bind5ClickAdminLink(brandName);
+  });
+}
+
+// 🔑 "Wedding Day" 뱃지 5초 내 5번 클릭/터치 시 이동
+function setupLongPressAdminLink() {
+  const heroBadge = document.querySelector('.hero-badge');
+  if (!heroBadge) return;
+
+  bind5ClickAdminLink(heroBadge);
+}
 
 // 🔑 미사용 감지 및 5초 뒤 타이머 표기 제어 로직
 function resetActivityTime() {
@@ -192,41 +236,6 @@ function updateSessionTimerDisplay(remainingMs) {
   if (sessionTimerCount) {
     sessionTimerCount.textContent = `${formattedMin}:${formattedSec}`;
   }
-}
-
-// 🔑 Wedding Day 5초 이상 길게 누르면 admin.html로 이동하는 롱프레스 로직
-function setupLongPressAdminLink() {
-  const heroBadge = document.querySelector('.hero-badge');
-  if (!heroBadge) return;
-
-  let longPressTimer = null;
-
-  const startTimer = () => {
-    longPressTimer = setTimeout(() => {
-      window.location.href = 'admin.html';
-    }, 5000);
-  };
-
-  const clearTimer = () => {
-    if (longPressTimer) {
-      clearTimeout(longPressTimer);
-      longPressTimer = null;
-    }
-  };
-
-  heroBadge.addEventListener('mousedown', startTimer);
-  heroBadge.addEventListener('mouseup', clearTimer);
-  heroBadge.addEventListener('mouseleave', clearTimer);
-
-  heroBadge.addEventListener('touchstart', (e) => {
-    startTimer();
-  }, { passive: true });
-  heroBadge.addEventListener('touchend', clearTimer);
-  heroBadge.addEventListener('touchcancel', clearTimer);
-
-  heroBadge.addEventListener('contextmenu', (e) => {
-    e.preventDefault();
-  });
 }
 
 function triggerAnimation(el, className = 'animate-fade-in-up') {
